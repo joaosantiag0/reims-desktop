@@ -1,0 +1,4 @@
+# Permissões de hardware para ReimsOS
+# Garante acesso sem root ao KVM e ao udmabuf para usuários no grupo 'kvm'
+KERNEL=="kvm", GROUP="kvm", MODE="0660"
+KERNEL=="udmabuf", GROUP="kvm", MODE="0660"

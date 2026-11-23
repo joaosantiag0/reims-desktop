@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Entrypoint launcher para o Reims Control Center
+export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+exec /usr/bin/python3 -m reims_gui.main "$@"

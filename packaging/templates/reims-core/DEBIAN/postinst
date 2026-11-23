@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Garante a existência do grupo kvm
+if ! getent group kvm >/dev/null 2>&1; then
+    groupadd -r kvm
+fi
+
+# Tenta recarregar regras udev se udevadm estiver presente
+if command -v udevadm >/dev/null 2>&1; then
+    udevadm control --reload-rules || true
+    udevadm trigger || true
+fi
+
+# Tenta carregar o módulo udmabuf imediatamente se estiver em host físico
+if command -v modprobe >/dev/null 2>&1; then
+    modprobe udmabuf || true
+    modprobe kvm || true
+fi
+
+exit 0
