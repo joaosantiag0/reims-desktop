@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Install ReimsOS
+Name[pt_BR]=Instalar o ReimsOS
+Name[es_ES]=Instalar ReimsOS
+GenericName=Live System Installer
+Comment=Install ReimsOS to disk with graphical Calamares installer
+Comment[pt_BR]=Instale o ReimsOS no seu disco através do instalador gráfico Calamares
+Exec=sudo -E calamares -d
+Icon=calamares
+Terminal=false
+StartupNotify=true
+Categories=Qt;System;

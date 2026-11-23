@@ -1,0 +1,31 @@
+# ReimsOS Branding Description for Calamares
+---
+componentName:  reims
+welcomeStyleCalamares: false
+welcomeExpandingLogo: true
+windowExpanding: normal
+windowSize: 840px,580px
+windowPlacement: center
+
+strings:
+    productName:         ReimsOS
+    version:             24.04 LTS
+    shortVersion:        24.04
+    versionedName:       ReimsOS 24.04 LTS "Noble Numbat"
+    shortVersionedName:  ReimsOS 24.04
+    bootloaderEntryName: ReimsOS
+    productUrl:          https://github.com/steelbrain/reims-vgpu
+    supportUrl:          https://github.com/steelbrain/reims-vgpu/issues
+    knownIssuesUrl:      https://github.com/steelbrain/reims-vgpu
+    releaseNotesUrl:     https://github.com/steelbrain/reims-vgpu
+
+images:
+    productLogo:         "reims-logo.png"
+    productIcon:         "reims-logo.png"
+    productWelcome:      "languages.png"
+
+style:
+   SidebarBackground:    "#1A1D24"
+   SidebarTextColor:     "#F1F5F9"
+   SidebarTextSelect:    "#2563EB"
+   SidebarTextHighlight: "#3B82F6"

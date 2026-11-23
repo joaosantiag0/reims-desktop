@@ -1,0 +1,66 @@
+# ReimsOS: Lista Mínima de Pacotes (Ubuntu 24.04 LTS Base)
+# Zero Bloatware: Apenas o estritamente necessário para o sistema,
+# ambiente gráfico ultraleve (LXQt), rede/BT, drivers e virtualização.
+
+# 1. Kernel, Firmware e Suporte a Hardware
+linux-image-generic
+linux-headers-generic
+linux-firmware
+dkms
+pciutils
+usbutils
+acpi-support
+initramfs-tools
+
+# 2. Pilha de Gráficos e Vulkan (NVIDIA, AMD, Intel)
+libvulkan1
+vulkan-tools
+mesa-vulkan-drivers
+xserver-xorg-core
+xserver-xorg-video-all
+
+# 3. Conectividade: Wi-Fi e Bluetooth
+network-manager
+bluez
+blueman
+wireless-tools
+wpasupplicant
+rfkill
+
+# 4. Áudio (PipeWire moderno de baixa latência + codecs BT)
+pipewire
+pipewire-pulse
+pipewire-alsa
+wireplumber
+pavucontrol-qt
+
+# 5. Desktop Environment: LXQt Minimal (Qt6)
+lxqt-core
+openbox
+pcmanfm-qt
+qterminal
+sddm
+sddm-theme-lubuntu
+
+# 6. Utilitários Básicos e Virtualização
+sudo
+curl
+wget
+git
+zstd
+ca-certificates
+locales
+tzdata
+qemu-system-x86
+ovmf
+swtpm
+dnsmasq
+
+# 7. Instalador Gráfico (Calamares)
+calamares
+parted
+gparted
+dosfstools
+e2fsprogs
+grub-efi-amd64-bin
+grub-pc-bin
