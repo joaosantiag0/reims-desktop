@@ -1,0 +1,33 @@
+name: Build ReimsOS ISO
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install ISO Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debootstrap xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin mtools dosfstools
+
+      - name: Build All Reims Debian Packages
+        run: |
+          ./packaging/scripts/build_all.sh --mock
+
+      - name: Build ReimsOS ISO
+        run: |
+          sudo ./iso-builder/scripts/build_iso.sh
+
+      - name: Upload ReimsOS ISO Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: reims-os-iso
+          path: dist/iso/*.iso
+          retention-days: 7

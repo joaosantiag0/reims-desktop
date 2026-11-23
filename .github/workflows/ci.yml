@@ -1,0 +1,57 @@
+name: ReimsOS CI
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  test-and-package:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbcommon-x11-0 libegl1-mesa libgl1-mesa-glx
+
+      - name: Install Python Dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r reims-gui/requirements.txt
+
+      - name: Run reims-gui Unit Tests
+        run: |
+          cd reims-gui
+          PYTHONPATH=src python3 -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Run Debian Packaging Tests
+        run: |
+          python3 -m unittest discover -s packaging/tests -p "test_*.py" -v
+
+      - name: Run ISO Builder Tests
+        run: |
+          python3 -m unittest discover -s iso-builder/tests -p "test_*.py" -v
+
+      - name: Build Debian Packages (reims-core, reims-gui, reims-vgpu)
+        run: |
+          ./packaging/scripts/build_all.sh --mock
+
+      - name: Validate ISO Builder Pipeline (Dry-Run)
+        run: |
+          ./iso-builder/scripts/build_iso.sh --dry-run
+
+      - name: Upload Debian Packages Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: reims-debian-packages
+          path: dist/*.deb
