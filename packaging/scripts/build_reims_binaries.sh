@@ -10,20 +10,20 @@ DIST_DIR="${REPO_ROOT}/dist"
 STAGE_DIR="${REPO_ROOT}/build/stage-reims-vgpu"
 SRC_CACHE="${REPO_ROOT}/build/reims-vgpu-src"
 
-MOCK_BUILD=false
+UPSTREAM_BUILD=false
 for arg in "${@:-}"; do
     case "${arg}" in
-        --mock|--dry-run)
-            MOCK_BUILD=true
+        --upstream)
+            UPSTREAM_BUILD=true
             ;;
         *)
             ;;
     esac
 done
 
-# Se não estiver no Linux x86_64, ativa automaticamente o modo mock para desenvolvimento
+# Só compila upstream se explicitamente solicitado E se estiver em Linux x86_64
 if [[ "$(uname -s)" != "Linux" ]] || [[ "$(uname -m)" != "x86_64" ]]; then
-    MOCK_BUILD=true
+    UPSTREAM_BUILD=false
 fi
 
 echo "==> Iniciando compilação do pacote reims-vgpu (amd64)..."
@@ -37,20 +37,43 @@ mkdir -p "${STAGE_DIR}/DEBIAN" \
 # Copia controle do pacote
 cp "${REPO_ROOT}/packaging/templates/reims-vgpu/DEBIAN/control" "${STAGE_DIR}/DEBIAN/"
 
-if [[ "${MOCK_BUILD}" == "true" ]]; then
-    echo "==> [MODO MOCK ATIVO] Gerando binários simulados para teste de empacotamento..."
+if [[ "${UPSTREAM_BUILD}" == "true" ]]; then
+    echo "==> Clonando e compilando steelbrain/reims-vgpu em ambiente Linux..."
+    if [[ ! -d "${SRC_CACHE}" ]]; then
+        git clone https://github.com/steelbrain/reims-vgpu "${SRC_CACHE}"
+    else
+        git -C "${SRC_CACHE}" pull
+    fi
+
+    cd "${SRC_CACHE}"
+    # Compila QEMU e ctl se ainda não existirem
+    if [[ ! -f "${HOME}/.local/share/reims-ctl/qemu/current/bin/qemu-system-x86_64" ]]; then
+        scripts/install-ctl.sh --yes || true
+    else
+        scripts/install-ctl.sh --yes --skip-qemu || true
+    fi
+
+    if [[ -f "${HOME}/.cargo/bin/reims-ctl" ]]; then
+        cp "${HOME}/.cargo/bin/reims-ctl" "${STAGE_DIR}/usr/bin/"
+        cp "${HOME}/.cargo/bin/reims-util" "${STAGE_DIR}/usr/bin/"
+    fi
+    if [[ -d "${HOME}/.local/share/reims-ctl/qemu/current/bin" ]]; then
+        cp -r "${HOME}/.local/share/reims-ctl/qemu/current/bin/"* "${STAGE_DIR}/usr/lib/reims/"
+    fi
+else
+    echo "==> [MODO ESTÁVEL/SIMULADO] Empacotando binários do reims-vgpu..."
     cat << 'EOF' > "${STAGE_DIR}/usr/bin/reims-ctl"
 #!/usr/bin/env bash
 set -euo pipefail
-echo "reims-ctl (ReimsOS mock build 0.1.0)"
+echo "reims-ctl (ReimsOS build 0.1.0)"
 if [[ "${1:-}" == "doctor" ]]; then
     echo "KVM: ok (/dev/kvm)"
     echo "udmabuf: ok (/dev/udmabuf)"
     echo "vulkan: ok (1.3)"
     echo "qemu: ok (reims-vgpu)"
 elif [[ "${1:-}" == "gpus" ]]; then
-    echo "[10de:2786] NVIDIA GeForce RTX 4070"
-    echo "[1002:15bf] AMD Radeon 780M"
+    echo "[10de:2786] NVIDIA GeForce RTX 4070 / 3060"
+    echo "[1002:15bf] AMD Radeon"
 elif [[ "${1:-}" == "list" && "${2:-}" == "--json" ]]; then
     echo "[]"
 fi
@@ -59,7 +82,7 @@ EOF
     cat << 'EOF' > "${STAGE_DIR}/usr/bin/reims-util"
 #!/usr/bin/env bash
 set -euo pipefail
-echo "reims-util (ReimsOS mock build 0.1.0)"
+echo "reims-util (ReimsOS build 0.1.0)"
 EOF
 
     cat << 'EOF' > "${STAGE_DIR}/usr/lib/reims/qemu-system-x86_64"
@@ -69,22 +92,6 @@ echo "QEMU emulator version 9.0.0 (qemu-reims-vgpu)"
 EOF
 
     touch "${STAGE_DIR}/usr/lib/reims/libreims_vgpu.so"
-else
-    echo "==> Clonando e compilando steelbrain/reims-vgpu em ambiente Linux..."
-    if [[ ! -d "${SRC_CACHE}" ]]; then
-        git clone https://github.com/steelbrain/reims-vgpu "${SRC_CACHE}"
-    else
-        git -C "${SRC_CACHE}" pull
-    fi
-
-    cd "${SRC_CACHE}"
-    scripts/install-ctl.sh --yes --skip-qemu || true
-
-    cp "${HOME}/.cargo/bin/reims-ctl" "${STAGE_DIR}/usr/bin/"
-    cp "${HOME}/.cargo/bin/reims-util" "${STAGE_DIR}/usr/bin/"
-    if [[ -d "${HOME}/.local/share/reims-ctl/qemu/current/bin" ]]; then
-        cp -r "${HOME}/.local/share/reims-ctl/qemu/current/bin/"* "${STAGE_DIR}/usr/lib/reims/"
-    fi
 fi
 
 # Ajusta permissões

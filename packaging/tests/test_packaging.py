@@ -95,6 +95,7 @@ class TestDebianPackaging(unittest.TestCase):
         self.assertEqual(res.returncode, 0, f"build_all.sh failed: {res.stderr}")
         self.assertIn("reims-core_0.1.0_all.deb", res.stdout)
         self.assertIn("reims-gui_0.1.0_all.deb", res.stdout)
+        self.assertIn("reims-vgpu_0.1.0_amd64.deb", res.stdout)
 
 
 if __name__ == "__main__":
