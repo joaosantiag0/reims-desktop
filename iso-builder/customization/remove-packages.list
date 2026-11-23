@@ -1,0 +1,25 @@
+# Lista de pacotes bloatware a serem removidos do Live CD do ReimsOS
+# Garante um desktop limpo, ultra-leve e sem programas desnecessários pré-instalados.
+
+# Jogos e Utilitários supérfluos
+2048-qt
+gnome-mines
+aisleriot
+
+# Suíte de escritório e editores não essenciais
+libreoffice*
+abiword*
+gnumeric*
+
+# Clientes de Torrent e IRC
+transmission-qt
+transmission-common
+quassel
+quassel-data
+trojita
+
+# Reprodutores de mídia pesados
+vlc
+vlc-data
+vlc-bin
+gnome-media

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="45%" r="75%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="40%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#020617" />
+    </radialGradient>
+    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Deep dark luxury canvas background -->
+  <rect width="1920" height="1080" fill="url(#bgGlow)" />
+
+  <!-- Subtle geometric grid/accent lines -->
+  <g stroke="#334155" stroke-width="1" opacity="0.15">
+    <line x1="0" y1="270" x2="1920" y2="270" />
+    <line x1="0" y1="540" x2="1920" y2="540" />
+    <line x1="0" y1="810" x2="1920" y2="810" />
+    <line x1="480" y1="0" x2="480" y2="1080" />
+    <line x1="960" y1="0" x2="960" y2="1080" />
+    <line x1="1440" y1="0" x2="1440" y2="1080" />
+  </g>
+
+  <!-- Center Emblem Group -->
+  <g transform="translate(960, 480)" filter="url(#shadow)">
+    <!-- Outer accelerated vGPU ring -->
+    <circle cx="0" cy="0" r="140" fill="none" stroke="url(#metalGrad)" stroke-width="8" stroke-dasharray="24 12" />
+
+    <!-- Center Apple / Display Stylized Silhouette -->
+    <path d="M0 -60 C-35 -60 -55 -35 -55 0 C-55 55 0 100 0 100 C0 100 55 55 55 0 C55 -35 35 -60 0 -60 Z" fill="url(#metalGrad)" />
+    <circle cx="0" cy="10" r="22" fill="#FFFFFF" />
+
+    <!-- Wordmark -->
+    <text x="0" y="190" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="44" font-weight="800" fill="#F8FAFC" letter-spacing="4">REIMS OS</text>
+    <text x="0" y="225" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="600" fill="#94A3B8" letter-spacing="2">ULTRA-LIGHTWEIGHT VIRTUALIZATION DESKTOP</text>
+  </g>
+</svg>
