@@ -206,24 +206,45 @@ done
 # Ajusta informações do disco (.disk/info)
 echo "ReimsOS 24.04 LTS - Release amd64" > "${STAGE_DIR}/iso/.disk/info"
 
-# Injeta Ícones de Boot e Splash (Plymouth)
+# Injeta Ícones de Boot e Splash (Plymouth) do ReimsOS
 echo "==> Injetando temas de boot e Plymouth do ReimsOS..."
 mkdir -p "${ROOTFS}/usr/share/pixmaps"
 cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/pixmaps/reims-logo.png"
 
-if [[ -d "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo" ]] && [[ -f "${CUSTOM_DIR}/reims-logo.png" ]]; then
-    cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/lubuntu_logo.png"
-fi
-
 if [[ -f "${CUSTOM_DIR}/reims-logo.png" ]]; then
+    # Substitui logos padrão do sistema
     cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/ubuntu-logo.png" || true
+
+    # Atualiza tema spinner padrão
     if [[ -d "${ROOTFS}/usr/share/plymouth/themes/spinner" ]]; then
         cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/themes/spinner/watermark.png" || true
         cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/themes/spinner/bgrt-fallback.png" || true
     fi
-fi
 
-if [[ -f "${CUSTOM_DIR}/reims-logo.png" ]]; then
+    # Atualiza tema lubuntu-logo removendo os 200 frames do logo do Lubuntu e aplicando a identidade do ReimsOS
+    if [[ -d "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo" ]]; then
+        cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/lubuntu_logo.png"
+        cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/watermark.png"
+        if [[ -d "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner" ]]; then
+            cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/watermark.png"
+            cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/bgrt-fallback.png"
+            # Substitui animação giratória do logo do Lubuntu pelo spinner neutro/limpo
+            if [[ -d "${ROOTFS}/usr/share/plymouth/themes/spinner" ]]; then
+                rm -f "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/animation-"*
+                rm -f "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/throbber-"*
+                cp "${ROOTFS}/usr/share/plymouth/themes/spinner/animation-"* "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/" || true
+                cp "${ROOTFS}/usr/share/plymouth/themes/spinner/throbber-"* "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/" 2>/dev/null || true
+            fi
+        fi
+
+        # Altera cores de fundo azul do Lubuntu para tema escuro do ReimsOS (#121418)
+        sed -i 's/0x0078c2/0x121418/g' "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/lubuntu-logo.plymouth" || true
+        if [[ -f "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/bgrt/bgrt.plymouth" ]]; then
+            sed -i 's/0x0078c2/0x121418/g' "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/bgrt/bgrt.plymouth" || true
+        fi
+    fi
+
+    # Calamares brandings
     if [[ -d "${ROOTFS}/etc/calamares/branding/lubuntu" ]]; then
         cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/etc/calamares/branding/lubuntu/welcome.png"
         cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/etc/calamares/branding/lubuntu/logo.png"
@@ -307,7 +328,9 @@ done
 
 # 4. Atualiza initramfs com os novos icones e splash do Plymouth
 echo "==> Atualizando initramfs com a identidade visual do ReimsOS..."
-update-initramfs -u || true
+KERNEL_VER=$(ls /lib/modules 2>/dev/null | tail -n 1 || uname -r)
+rm -f /boot/initrd.img*
+update-initramfs -c -k "${KERNEL_VER}" || update-initramfs -u || true
 
 # 5. Limpeza de cache
 apt-get clean
@@ -340,16 +363,6 @@ for candidate in "${ROOTFS}/boot/vmlinuz-"*; do
         break
     fi
 done
-
-# Injeta Plymouth logo do ReimsOS diretamente no casper/initrd da ISO (cpio overlay)
-if [[ -f "${STAGE_DIR}/iso/casper/initrd" ]] && [[ -f "${CUSTOM_DIR}/reims-logo.png" ]]; then
-    echo "==> Injetando logo de boot do ReimsOS diretamente no casper/initrd..."
-    INITRD_OVERLAY=$(mktemp -d)
-    mkdir -p "${INITRD_OVERLAY}/usr/share/plymouth/themes/lubuntu-logo"
-    cp "${CUSTOM_DIR}/reims-logo.png" "${INITRD_OVERLAY}/usr/share/plymouth/themes/lubuntu-logo/lubuntu_logo.png"
-    (cd "${INITRD_OVERLAY}" && find . -type f | cpio -o -H newc --quiet) >> "${STAGE_DIR}/iso/casper/initrd"
-    rm -rf "${INITRD_OVERLAY}"
-fi
 
 # Desmonta chroot de forma limpa
 trap - EXIT INT TERM
