@@ -2,20 +2,18 @@ from __future__ import annotations
 import logging
 from typing import List, Optional
 
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import (
-    QComboBox,
-    QFrame,
-    QGridLayout,
-    QHBoxLayout,
-    QLabel,
-    QMainWindow,
-    QMessageBox,
-    QPushButton,
-    QScrollArea,
-    QVBoxLayout,
-    QWidget,
-)
+from reims_gui.qt_compat import Qt, QTimer, QtWidgets
+QComboBox = QtWidgets.QComboBox
+QFrame = QtWidgets.QFrame
+QGridLayout = QtWidgets.QGridLayout
+QHBoxLayout = QtWidgets.QHBoxLayout
+QLabel = QtWidgets.QLabel
+QMainWindow = QtWidgets.QMainWindow
+QMessageBox = QtWidgets.QMessageBox
+QPushButton = QtWidgets.QPushButton
+QScrollArea = QtWidgets.QScrollArea
+QVBoxLayout = QtWidgets.QVBoxLayout
+QWidget = QtWidgets.QWidget
 
 from reims_gui.core.ctl_client import ReimsCtlClient
 from reims_gui.core.models import DoctorHealth, GpuDevice, VmInfo

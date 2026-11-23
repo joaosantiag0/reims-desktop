@@ -1,16 +1,14 @@
 from __future__ import annotations
 from typing import Callable, Optional
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QFrame,
-    QGridLayout,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QVBoxLayout,
-    QWidget,
-)
+from reims_gui.qt_compat import Qt, QtWidgets
+QFrame = QtWidgets.QFrame
+QGridLayout = QtWidgets.QGridLayout
+QHBoxLayout = QtWidgets.QHBoxLayout
+QLabel = QtWidgets.QLabel
+QPushButton = QtWidgets.QPushButton
+QVBoxLayout = QtWidgets.QVBoxLayout
+QWidget = QtWidgets.QWidget
 
 from reims_gui.core.models import VmInfo, VmStatus
 from reims_gui.i18n.translator import t

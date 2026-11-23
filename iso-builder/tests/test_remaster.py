@@ -42,6 +42,55 @@ class TestIsoRemastering(unittest.TestCase):
         self.assertIn("reims-wallpaper.svg", pcmanfm.read_text(encoding="utf-8"))
         self.assertIn("Flat-Dark", lxqt_conf.read_text(encoding="utf-8"))
 
+    def test_installer_prompt_and_boot_logo_exist(self):
+        prompt_py = self.custom_dir / "reims-installer-prompt.py"
+        logo_png = self.custom_dir / "reims-logo.png"
+
+        self.assertTrue(prompt_py.exists(), "reims-installer-prompt.py not found")
+        self.assertTrue(logo_png.exists(), "reims-logo.png not found")
+        self.assertGreater(logo_png.stat().st_size, 1000)
+
+        content = prompt_py.read_text(encoding="utf-8")
+        self.assertIn("#!/usr/bin/env python3", content)
+        self.assertIn("ReimsInstallerPromptWindow", content)
+        self.assertIn("Experimentar ReimsOS (Live CD)", content)
+        self.assertIn("Instalar o ReimsOS", content)
+
+    def test_touchpad_config_exists(self):
+        conf = self.custom_dir / "90-touchpad.conf"
+        sh = self.custom_dir / "reims-touchpad.sh"
+        desktop = self.custom_dir / "reims-touchpad.desktop"
+
+        self.assertTrue(conf.exists(), "90-touchpad.conf not found")
+        self.assertTrue(sh.exists(), "reims-touchpad.sh not found")
+        self.assertTrue(desktop.exists(), "reims-touchpad.desktop not found")
+
+        conf_content = conf.read_text(encoding="utf-8")
+        self.assertIn('Option "Tapping" "True"', conf_content)
+        self.assertIn('Option "ClickMethod" "clickfinger"', conf_content)
+
+        sh_content = sh.read_text(encoding="utf-8")
+        self.assertIn("xinput set-prop", sh_content)
+        self.assertIn("libinput Tapping Enabled", sh_content)
+
+    def test_calamares_reims_branding_and_desktop_installer(self):
+        calamares_desc = self.repo_root / "iso-builder" / "config" / "calamares" / "branding" / "reims" / "branding.desc"
+        self.assertTrue(calamares_desc.exists(), "branding.desc for reims not found")
+        content = calamares_desc.read_text(encoding="utf-8")
+        self.assertIn('slideshow:', content)
+        self.assertIn('"show.qml"', content)
+        self.assertIn("slideshowAPI:", content)
+        self.assertIn("productName:", content)
+        self.assertIn("ReimsOS", content)
+
+        script = self.scripts_dir / "remaster_iso.sh"
+        script_content = script.read_text(encoding="utf-8")
+        self.assertIn("lubuntu-calamares.desktop", script_content)
+        self.assertIn("Install ReimsOS", script_content)
+        self.assertIn("rm -f \"${SKEL_DIR}/Desktop/install-reims.desktop\"", script_content)
+        self.assertIn("pkgselect", script_content)
+        self.assertIn('cp -v "${CONFIG_DIR}/calamares/settings.conf"', script_content)
+
     def test_remaster_script_dry_run(self):
         script = self.scripts_dir / "remaster_iso.sh"
         res = subprocess.run([str(script), "--dry-run"], capture_output=True, text=True)

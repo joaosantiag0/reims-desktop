@@ -5,8 +5,8 @@ import argparse
 import logging
 import sys
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication
+from reims_gui.qt_compat import Qt, QtWidgets
+QApplication = QtWidgets.QApplication
 
 from reims_gui.core.ctl_client import ReimsCtlClient
 from reims_gui.i18n.translator import Translator

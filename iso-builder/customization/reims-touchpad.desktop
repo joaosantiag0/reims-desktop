@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Reims Touchpad Configurator
+Comment=Enable tap-to-click and gestures on touchpads
+Exec=/usr/bin/reims-touchpad
+Terminal=false
+StartupNotify=false
+Categories=System;

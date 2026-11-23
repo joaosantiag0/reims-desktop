@@ -79,6 +79,7 @@ class TestIsoBuilder(unittest.TestCase):
         self.assertIn("keyboard", content)
         self.assertIn("partition", content)
         self.assertIn("contextualprocess", content)
+        self.assertNotIn("pkgselect", content, "pkgselect screen should be removed from Calamares settings")
 
     def test_calamares_contextual_process_groups(self):
         ctx_file = self.config_dir / "calamares" / "modules" / "contextualprocess.conf"

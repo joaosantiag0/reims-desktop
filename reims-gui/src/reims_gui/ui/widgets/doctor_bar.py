@@ -1,10 +1,8 @@
 from __future__ import annotations
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QHBoxLayout,
-    QLabel,
-    QWidget,
-)
+from reims_gui.qt_compat import Qt, QtWidgets
+QHBoxLayout = QtWidgets.QHBoxLayout
+QLabel = QtWidgets.QLabel
+QWidget = QtWidgets.QWidget
 
 from reims_gui.core.models import DoctorHealth
 from reims_gui.i18n.translator import t

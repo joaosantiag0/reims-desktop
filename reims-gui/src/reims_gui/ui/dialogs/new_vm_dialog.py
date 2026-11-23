@@ -1,19 +1,17 @@
 from __future__ import annotations
 from typing import List, Optional
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QComboBox,
-    QDialog,
-    QFormLayout,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QSlider,
-    QSpinBox,
-    QVBoxLayout,
-)
+from reims_gui.qt_compat import Qt, QtWidgets
+QComboBox = QtWidgets.QComboBox
+QDialog = QtWidgets.QDialog
+QFormLayout = QtWidgets.QFormLayout
+QHBoxLayout = QtWidgets.QHBoxLayout
+QLabel = QtWidgets.QLabel
+QLineEdit = QtWidgets.QLineEdit
+QPushButton = QtWidgets.QPushButton
+QSlider = QtWidgets.QSlider
+QSpinBox = QtWidgets.QSpinBox
+QVBoxLayout = QtWidgets.QVBoxLayout
 
 from reims_gui.core.models import GpuDevice, NewVmRequest
 from reims_gui.i18n.translator import t
