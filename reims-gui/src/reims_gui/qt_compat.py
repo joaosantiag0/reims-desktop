@@ -58,8 +58,21 @@ if not QT_BACKEND:
     class _MockQtObject(metaclass=_MockMeta):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             self.text = _MockStr("")
+            self.val = 0
+        def setValue(self, val: int) -> None:
+            self.val = val
+        def value(self) -> int:
+            return self.val
         def setText(self, text: str) -> None:
             self.text = _MockStr(text)
+        def toPlainText(self) -> str:
+            return str(self.text)
+        def append(self, text: str) -> None:
+            self.text = _MockStr((str(self.text) + "\n" + str(text)).strip())
+        def connect(self, *args: Any, **kwargs: Any) -> Any:
+            return self
+        def emit(self, *args: Any, **kwargs: Any) -> Any:
+            return self
         def __getattr__(self, name: str) -> Any:
             return _MockQtObject()
         def __call__(self, *args: Any, **kwargs: Any) -> Any:
@@ -77,7 +90,7 @@ if not QT_BACKEND:
         def __bool__(self) -> bool:
             return True
         def __int__(self) -> int:
-            return 0
+            return int(self.val)
         def findData(self, *args: Any, **kwargs: Any) -> int:
             return 0
         def windowTitle(self) -> str:
@@ -87,8 +100,8 @@ if not QT_BACKEND:
         QObject = _MockQtObject
         QTimer = _MockQtObject
         QThread = _MockQtObject
-        Signal = staticmethod(lambda *args: None)
-        Slot = staticmethod(lambda *args: lambda f: f)
+        Signal = staticmethod(lambda *args, **kwargs: _MockQtObject())
+        Slot = staticmethod(lambda *args, **kwargs: (lambda f: f))
 
     class _MockQtGui:
         QIcon = _MockQtObject
@@ -122,8 +135,8 @@ if not QT_BACKEND:
     QtGui = _MockQtGui()  # type: ignore
     QtWidgets = _MockQtWidgets()  # type: ignore
     QTimer = _MockQtObject  # type: ignore
-    Signal = staticmethod(lambda *args: None)  # type: ignore
-    Slot = staticmethod(lambda *args: lambda f: f)  # type: ignore
+    Signal = lambda *args, **kwargs: _MockQtObject()  # type: ignore
+    Slot = lambda *args, **kwargs: (lambda f: f)  # type: ignore
 
     class _MockQt:
         class AlignmentFlag:

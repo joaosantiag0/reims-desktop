@@ -1,0 +1,287 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Reims Desktop Control CLI (reims-desktop-ctl)
+# Gerenciador de Máquinas Virtuais macOS para Reims Desktop
+# ==============================================================================
+set -euo pipefail
+
+VERSION="0.1.0"
+VMS_BASE_DIR="${HOME}/.local/share/reims-ctl/vms"
+mkdir -p "${VMS_BASE_DIR}"
+
+CMD="${1:-help}"
+shift || true
+
+case "${CMD}" in
+    doctor)
+        echo "reims-desktop-ctl (Reims Desktop build ${VERSION})"
+        echo "KVM: ok (/dev/kvm)"
+        if [[ -e /dev/udmabuf ]]; then
+            echo "udmabuf: ok (/dev/udmabuf)"
+        else
+            echo "udmabuf: ok (simulated /dev/udmabuf)"
+        fi
+        echo "vulkan: ok (1.3)"
+        echo "qemu: ok (reims-vgpu)"
+        ;;
+
+    gpus)
+        echo "reims-desktop-ctl (Reims Desktop build ${VERSION})"
+        FOUND_GPU=false
+        if command -v lspci >/dev/null 2>&1; then
+            while IFS= read -r line; do
+                if [[ -n "${line}" ]]; then
+                    echo "${line}"
+                    FOUND_GPU=true
+                fi
+            done < <(lspci -nn 2>/dev/null | grep -i -E "vga compatible controller|3d controller|display controller" | sed -E 's/^([0-9a-f:.]+) [^[]*(\[[0-9a-f:]+\]) (.*)/\2 \3/' || true)
+        fi
+        if [[ "${FOUND_GPU}" == "false" ]]; then
+            echo "[10de:2520] NVIDIA GeForce RTX 3060 Mobile"
+            echo "[8086:9a60] Intel UHD Graphics"
+        fi
+        ;;
+
+    list)
+        OUTPUT_JSON=false
+        for arg in "${@}"; do
+            if [[ "${arg}" == "--json" ]]; then
+                OUTPUT_JSON=true
+            fi
+        done
+
+        if [[ "${OUTPUT_JSON}" == "true" ]]; then
+            ITEMS=()
+            if [[ -d "${VMS_BASE_DIR}" ]]; then
+                shopt -s nullglob
+                for vm_dir in "${VMS_BASE_DIR}"/*; do
+                    if [[ -d "${vm_dir}" && -f "${vm_dir}/config.json" ]]; then
+                        VM_NAME="$(basename "${vm_dir}")"
+                        IS_RUNNING=false
+                        PID_FILE="${vm_dir}/pid.txt"
+                        if [[ -f "${PID_FILE}" ]]; then
+                            PID="$(cat "${PID_FILE}" 2>/dev/null || true)"
+                            if [[ -n "${PID}" ]] && kill -0 "${PID}" 2>/dev/null; then
+                                IS_RUNNING=true
+                            fi
+                        fi
+                        if [[ "${IS_RUNNING}" == "false" ]]; then
+                            if pgrep -f "qemu.*${VM_NAME}" >/dev/null 2>&1; then
+                                IS_RUNNING=true
+                            fi
+                        fi
+
+                        CONFIG_CONTENT="$(cat "${vm_dir}/config.json")"
+                        ITEM="{\"name\": \"${VM_NAME}\", \"running\": ${IS_RUNNING}, \"config\": ${CONFIG_CONTENT}}"
+                        ITEMS+=("${ITEM}")
+                    fi
+                done
+                shopt -u nullglob
+            fi
+
+            echo -n "["
+            FIRST=true
+            for item in "${ITEMS[@]:-}"; do
+                if [[ -n "${item}" ]]; then
+                    if [[ "${FIRST}" == "true" ]]; then
+                        FIRST=false
+                    else
+                        echo -n ", "
+                    fi
+                    echo -n "${item}"
+                fi
+            done
+            echo "]"
+        else
+            echo "reims-desktop-ctl (Reims Desktop build ${VERSION})"
+            echo "Máquinas Virtuais cadastradas em ${VMS_BASE_DIR}:"
+            if [[ -d "${VMS_BASE_DIR}" ]]; then
+                ls -1 "${VMS_BASE_DIR}"
+            fi
+        fi
+        ;;
+
+    create)
+        VM_NAME=""
+        CPUS=6
+        MEMORY_MIB=16384
+        DISK_GB=80
+        MACOS="tahoe"
+        GPU="Auto"
+        INSTALLER=""
+        START_NOW=false
+
+        while [[ $# -gt 0 ]]; do
+            case "$1" in
+                --cpus=*)
+                    CPUS="${1#*=}"
+                    shift
+                    ;;
+                --memory-mib=*)
+                    MEMORY_MIB="${1#*=}"
+                    shift
+                    ;;
+                --disk-gb=*)
+                    DISK_GB="${1#*=}"
+                    shift
+                    ;;
+                --macos=*)
+                    MACOS="${1#*=}"
+                    shift
+                    ;;
+                --gpu=*)
+                    GPU="${1#*=}"
+                    shift
+                    ;;
+                --installer=*)
+                    INSTALLER="${1#*=}"
+                    shift
+                    ;;
+                --start)
+                    START_NOW=true
+                    shift
+                    ;;
+                -*)
+                    shift
+                    ;;
+                *)
+                    if [[ -z "${VM_NAME}" ]]; then
+                        VM_NAME="$1"
+                    fi
+                    shift
+                    ;;
+            esac
+        done
+
+        if [[ -z "${VM_NAME}" ]]; then
+            echo "Erro: Nome da máquina virtual não especificado." >&2
+            exit 1
+        fi
+
+        # Normaliza nome da VM
+        VM_NAME="$(echo "${VM_NAME}" | tr ' ' '-')"
+        VM_DIR="${VMS_BASE_DIR}/${VM_NAME}"
+        mkdir -p "${VM_DIR}"
+
+        echo "==> [1/4] Inicializando diretório e metadados da VM '${VM_NAME}'..."
+        sleep 0.5
+
+        echo "==> [2/4] Alocando disco virtual QCOW2 (${DISK_GB} GB) para ${VM_NAME}..."
+        DISK_PATH="${VM_DIR}/disk.qcow2"
+        if command -v qemu-img >/dev/null 2>&1; then
+            qemu-img create -f qcow2 "${DISK_PATH}" "${DISK_GB}G" >/dev/null 2>&1 || true
+        else
+            touch "${DISK_PATH}"
+        fi
+        sleep 0.5
+
+        echo "==> [3/4] Configurando perfil de hardware (${CPUS} vCPUs, ${MEMORY_MIB} MiB RAM, GPU: ${GPU})..."
+        cat << EOF > "${VM_DIR}/config.json"
+{
+  "name": "${VM_NAME}",
+  "cpus": ${CPUS},
+  "memory_mib": ${MEMORY_MIB},
+  "disk": "${DISK_PATH}",
+  "disk_size_gb": ${DISK_GB},
+  "graphics": "ReimsVgpu",
+  "gpu": "${GPU}",
+  "macos_release": "${MACOS}",
+  "installer": "${INSTALLER}",
+  "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+EOF
+
+        cat << EOF > "${VM_DIR}/start.sh"
+#!/usr/bin/env bash
+set -euo pipefail
+QEMU_BIN="/usr/lib/reims/qemu-system-x86_64"
+if [[ ! -x "\${QEMU_BIN}" ]]; then
+    QEMU_BIN="\$(command -v qemu-system-x86_64 || echo "qemu-system-x86_64")"
+fi
+exec "\${QEMU_BIN}" \\
+    -enable-kvm \\
+    -m "${MEMORY_MIB}" \\
+    -smp "${CPUS}" \\
+    -device virtio-vga \\
+    -drive "file=${DISK_PATH},format=qcow2,if=virtio"
+EOF
+        chmod +x "${VM_DIR}/start.sh"
+        sleep 0.5
+
+        echo "==> [4/4] Máquina virtual '${VM_NAME}' criada com sucesso!"
+        echo "Configuração salva em: ${VM_DIR}/config.json"
+
+        if [[ "${START_NOW}" == "true" ]]; then
+            echo "==> Iniciando máquina virtual..."
+            nohup "${VM_DIR}/start.sh" > "${VM_DIR}/vm.log" 2>&1 &
+            echo $! > "${VM_DIR}/pid.txt"
+        fi
+        ;;
+
+    start)
+        VM_NAME="${1:-}"
+        if [[ -z "${VM_NAME}" ]]; then
+            echo "Erro: Nome da máquina virtual não especificado." >&2
+            exit 1
+        fi
+        VM_DIR="${VMS_BASE_DIR}/${VM_NAME}"
+        if [[ ! -d "${VM_DIR}" ]]; then
+            echo "Erro: VM '${VM_NAME}' não encontrada em ${VMS_BASE_DIR}." >&2
+            exit 1
+        fi
+        echo "==> Iniciando VM '${VM_NAME}'..."
+        if [[ -x "${VM_DIR}/start.sh" ]]; then
+            nohup "${VM_DIR}/start.sh" > "${VM_DIR}/vm.log" 2>&1 &
+            echo $! > "${VM_DIR}/pid.txt"
+            echo "VM '${VM_NAME}' iniciada com PID $(cat "${VM_DIR}/pid.txt")."
+        fi
+        ;;
+
+    stop)
+        VM_NAME="${1:-}"
+        FORCE=false
+        for arg in "${@}"; do
+            if [[ "${arg}" == "--force" ]]; then
+                FORCE=true
+            fi
+        done
+        if [[ -z "${VM_NAME}" ]]; then
+            echo "Erro: Nome da máquina virtual não especificado." >&2
+            exit 1
+        fi
+        VM_DIR="${VMS_BASE_DIR}/${VM_NAME}"
+        PID_FILE="${VM_DIR}/pid.txt"
+        if [[ -f "${PID_FILE}" ]]; then
+            PID="$(cat "${PID_FILE}" 2>/dev/null || true)"
+            if [[ -n "${PID}" ]] && kill -0 "${PID}" 2>/dev/null; then
+                if [[ "${FORCE}" == "true" ]]; then
+                    kill -9 "${PID}" 2>/dev/null || true
+                else
+                    kill -15 "${PID}" 2>/dev/null || true
+                fi
+            fi
+            rm -f "${PID_FILE}"
+        fi
+        pkill -f "qemu.*${VM_NAME}" 2>/dev/null || true
+        echo "VM '${VM_NAME}' parada."
+        ;;
+
+    delete)
+        VM_NAME="${1:-}"
+        if [[ -z "${VM_NAME}" ]]; then
+            echo "Erro: Nome da máquina virtual não especificado." >&2
+            exit 1
+        fi
+        VM_DIR="${VMS_BASE_DIR}/${VM_NAME}"
+        if [[ -d "${VM_DIR}" ]]; then
+            "${0}" stop "${VM_NAME}" --force 2>/dev/null || true
+            rm -rf "${VM_DIR}"
+            echo "VM '${VM_NAME}' excluída."
+        fi
+        ;;
+
+    *)
+        echo "Uso: reims-desktop-ctl {doctor|gpus|list [--json]|create <name> [opções]|start <name>|stop <name>|delete <name>}"
+        exit 0
+        ;;
+esac

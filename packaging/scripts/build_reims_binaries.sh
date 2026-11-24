@@ -64,22 +64,8 @@ if [[ "${UPSTREAM_BUILD}" == "true" ]]; then
     fi
 else
     echo "==> [MODO ESTÁVEL/SIMULADO] Empacotando binários do reims-vgpu..."
-    cat << 'EOF' > "${STAGE_DIR}/usr/bin/reims-desktop-ctl"
-#!/usr/bin/env bash
-set -euo pipefail
-echo "reims-desktop-ctl (Reims Desktop build 0.1.0)"
-if [[ "${1:-}" == "doctor" ]]; then
-    echo "KVM: ok (/dev/kvm)"
-    echo "udmabuf: ok (/dev/udmabuf)"
-    echo "vulkan: ok (1.3)"
-    echo "qemu: ok (reims-vgpu)"
-elif [[ "${1:-}" == "gpus" ]]; then
-    echo "[10de:2786] NVIDIA GeForce RTX 4070 / 3060"
-    echo "[1002:15bf] AMD Radeon"
-elif [[ "${1:-}" == "list" && "${2:-}" == "--json" ]]; then
-    echo "[]"
-fi
-EOF
+    cp "${REPO_ROOT}/packaging/templates/reims-vgpu/usr/bin/reims-desktop-ctl" "${STAGE_DIR}/usr/bin/reims-desktop-ctl"
+    chmod +x "${STAGE_DIR}/usr/bin/reims-desktop-ctl"
 
     cat << 'EOF' > "${STAGE_DIR}/usr/bin/reims-desktop-util"
 #!/usr/bin/env bash

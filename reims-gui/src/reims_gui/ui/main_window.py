@@ -22,6 +22,7 @@ from reims_gui.core.updater import SystemUpdater
 from reims_gui.i18n.translator import Translator, t
 from reims_gui.ui.dialogs.new_vm_dialog import NewVmDialog
 from reims_gui.ui.dialogs.update_dialog import UpdateDialog
+from reims_gui.ui.dialogs.vm_creation_dialog import VmCreationDialog
 from reims_gui.ui.widgets.doctor_bar import DoctorBar
 from reims_gui.ui.widgets.vm_card import VmCard
 
@@ -221,8 +222,9 @@ class MainWindow(QMainWindow):
         dlg = NewVmDialog(available_gpus=gpus, parent=self)
         if dlg.exec():
             req = dlg.get_request()
-            self.client.create_vm(req)
-            self.refresh_data()
+            creation_dlg = VmCreationDialog(req=req, client=self.client, parent=self)
+            if creation_dlg.exec():
+                self.refresh_data()
 
     def _handle_check_updates(self):
         logger.info("Verificando atualizações no GitHub...")

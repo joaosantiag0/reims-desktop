@@ -56,6 +56,51 @@ class TestReimsBinariesPackaging(unittest.TestCase):
                 self.assertTrue(any("usr/bin/reims-util" in n for n in names))
                 self.assertTrue(any("usr/lib/reims/qemu-system-x86_64" in n for n in names))
 
+    def test_reims_desktop_ctl_cli_operations(self):
+        ctl_script = self.repo_root / "packaging" / "templates" / "reims-vgpu" / "usr" / "bin" / "reims-desktop-ctl"
+        self.assertTrue(ctl_script.exists())
+        os.chmod(ctl_script, 0o755)
+
+        # Test doctor
+        res_doc = subprocess.run([str(ctl_script), "doctor"], capture_output=True, text=True)
+        self.assertEqual(res_doc.returncode, 0)
+        self.assertIn("KVM:", res_doc.stdout)
+
+        # Test gpus
+        res_gpu = subprocess.run([str(ctl_script), "gpus"], capture_output=True, text=True)
+        self.assertEqual(res_gpu.returncode, 0)
+        self.assertTrue("NVIDIA" in res_gpu.stdout or "Graphics" in res_gpu.stdout or "AMD" in res_gpu.stdout)
+
+        # Test create VM
+        with tempfile.TemporaryDirectory() as fake_home:
+            env = dict(os.environ, HOME=fake_home)
+            res_create = subprocess.run(
+                [str(ctl_script), "create", "Test-macOS-VM", "--cpus=4", "--memory-mib=8192", "--disk-gb=50", "--macos=tahoe"],
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+            self.assertEqual(res_create.returncode, 0, f"create failed: {res_create.stderr}")
+            self.assertIn("[1/4]", res_create.stdout)
+            self.assertIn("[4/4]", res_create.stdout)
+
+            # Test list --json
+            res_list = subprocess.run([str(ctl_script), "list", "--json"], capture_output=True, text=True, env=env)
+            self.assertEqual(res_list.returncode, 0)
+            import json
+            vms = json.loads(res_list.stdout)
+            self.assertEqual(len(vms), 1)
+            self.assertEqual(vms[0]["name"], "Test-macOS-VM")
+            self.assertEqual(vms[0]["config"]["cpus"], 4)
+
+            # Test delete
+            res_del = subprocess.run([str(ctl_script), "delete", "Test-macOS-VM"], capture_output=True, text=True, env=env)
+            self.assertEqual(res_del.returncode, 0)
+
+            res_list_after = subprocess.run([str(ctl_script), "list", "--json"], capture_output=True, text=True, env=env)
+            vms_after = json.loads(res_list_after.stdout)
+            self.assertEqual(len(vms_after), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,7 +4,7 @@ import logging
 import os
 import shutil
 import subprocess
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from reims_gui.core.models import (
     DoctorHealth,
@@ -14,6 +14,7 @@ from reims_gui.core.models import (
     VmInfo,
     VmStatus,
 )
+from reims_gui.i18n.translator import t
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +127,15 @@ class ReimsCtlClient:
             for item in data:
                 status = VmStatus.RUNNING if item.get("running") else VmStatus.STOPPED
                 config = item.get("config", {})
+                disk_size = config.get("disk_size_gb")
+                if disk_size is not None:
+                    try:
+                        disk_size = float(disk_size)
+                    except (ValueError, TypeError):
+                        disk_size = None
+
+                gpu_val = config.get("gpu")
+                macos_rel = str(config.get("macos_release", "Tahoe")).capitalize()
                 vms.append(
                     VmInfo(
                         name=item.get("name", "Unknown"),
@@ -133,8 +143,10 @@ class ReimsCtlClient:
                         cpus=config.get("cpus", 4),
                         memory_mib=config.get("memory_mib", 8192),
                         disk_path=config.get("disk", ""),
+                        disk_size_gb=disk_size,
                         graphics=GraphicsType.REIMS_VGPU if config.get("graphics") == "ReimsVgpu" else GraphicsType.VMWARE_SVGA,
-                        macos_version="macOS",
+                        gpu_name=gpu_val,
+                        macos_version=f"macOS {macos_rel}",
                     )
                 )
             return vms
@@ -178,8 +190,18 @@ class ReimsCtlClient:
             logger.error(f"Failed to stop VM {name}: {e}")
             return False
 
-    def create_vm(self, req: NewVmRequest) -> bool:
+    def create_vm(
+        self,
+        req: NewVmRequest,
+        progress_callback: Optional[Callable[[int, str, str], None]] = None,
+    ) -> bool:
         if self.mock:
+            if progress_callback:
+                progress_callback(25, t("wizard.creation.step_init"), f"==> [1/4] Inicializando diretório da VM '{req.name}'...")
+                progress_callback(50, t("wizard.creation.step_disk", size=req.disk_size_gb), f"==> [2/4] Alocando disco virtual QCOW2 ({req.disk_size_gb} GB)...")
+                progress_callback(75, t("wizard.creation.step_config"), f"==> [3/4] Configurando perfil de hardware e bootloader EFI...")
+                progress_callback(100, t("wizard.creation.step_done"), f"==> [4/4] Máquina virtual '{req.name}' criada com sucesso!")
+
             new_vm = VmInfo(
                 name=req.name,
                 status=VmStatus.STOPPED,
@@ -189,7 +211,7 @@ class ReimsCtlClient:
                 disk_size_gb=float(req.disk_size_gb),
                 graphics=GraphicsType.REIMS_VGPU,
                 gpu_name=req.gpu.name if req.gpu else "Auto",
-                macos_version=req.macos_release,
+                macos_version=f"macOS {req.macos_release.capitalize()}",
             )
             self._mock_vms.append(new_vm)
             return True
@@ -200,18 +222,53 @@ class ReimsCtlClient:
             req.name,
             f"--cpus={req.cpus}",
             f"--memory-mib={req.memory_mib}",
+            f"--disk-gb={req.disk_size_gb}",
         ]
+        if req.gpu:
+            cmd.append(f"--gpu={req.gpu.name}")
         if req.custom_installer_path:
             cmd.append(f"--installer={req.custom_installer_path}")
         else:
-            # reims-util download target
             cmd.append(f"--macos={req.macos_release}")
 
         try:
-            subprocess.run(cmd, check=True, timeout=180)
-            return True
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+            )
+            pct = 10
+            if proc.stdout:
+                for line in iter(proc.stdout.readline, ""):
+                    line_str = line.strip()
+                    if not line_str:
+                        continue
+                    if "[1/4]" in line_str:
+                        pct = 25
+                        step_msg = t("wizard.creation.step_init")
+                    elif "[2/4]" in line_str:
+                        pct = 50
+                        step_msg = t("wizard.creation.step_disk", size=req.disk_size_gb)
+                    elif "[3/4]" in line_str:
+                        pct = 75
+                        step_msg = t("wizard.creation.step_config")
+                    elif "[4/4]" in line_str or "sucesso" in line_str.lower():
+                        pct = 100
+                        step_msg = t("wizard.creation.step_done")
+                    else:
+                        step_msg = line_str
+
+                    if progress_callback:
+                        progress_callback(pct, step_msg, line_str)
+
+            proc.wait(timeout=180)
+            return proc.returncode == 0
         except Exception as e:
             logger.error(f"Failed to create VM {req.name}: {e}")
+            if progress_callback:
+                progress_callback(0, t("wizard.creation.step_error", err=str(e)), str(e))
             return False
 
     def delete_vm(self, name: str) -> bool:
