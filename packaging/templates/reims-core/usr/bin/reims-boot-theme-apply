@@ -7,13 +7,19 @@ echo "=================================================="
 
 # Localiza arquivos do tema do Reims
 THEME_SRC="/usr/share/grub/themes/reims"
-if [[ ! -d "${THEME_SRC}" ]]; then
-    # Fallback para o caminho dentro do repositório caso executado a partir do código fonte
+if [[ ! -d "${THEME_SRC}" ]] || [[ ! -f "${THEME_SRC}/theme.txt" ]]; then
+    # Fallback para o caminho dentro do repositório
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." 2>/dev/null && pwd || true)"
-    if [[ -d "${REPO_ROOT}/iso-builder/customization/grub" ]]; then
-        THEME_SRC="${REPO_ROOT}/iso-builder/customization/grub"
-    fi
+    for CANDIDATE in \
+        "${SCRIPT_DIR}/../../../../iso-builder/customization/grub" \
+        "${SCRIPT_DIR}/../../../iso-builder/customization/grub" \
+        "${SCRIPT_DIR}/../../iso-builder/customization/grub" \
+        "/home/joao/reims-os/iso-builder/customization/grub"; do
+        if [[ -d "${CANDIDATE}" ]] && [[ -f "${CANDIDATE}/theme.txt" ]]; then
+            THEME_SRC="$(cd "${CANDIDATE}" && pwd)"
+            break
+        fi
+    done
 fi
 
 if [[ ! -d "${THEME_SRC}" ]] || [[ ! -f "${THEME_SRC}/theme.txt" ]]; then
@@ -60,6 +66,15 @@ if [[ -w /boot/grub ]] || [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
     fi
 fi
 
+# Detecta se está executando dentro de um ambiente chroot (ex: montagem de ISO)
+IS_CHROOT=false
+if [[ -f /etc/debian_chroot ]] || [[ -f /tmp/customize.sh ]]; then
+    IS_CHROOT=true
+fi
+if [[ "$(stat -c %d:%i / 2>/dev/null)" != "$(stat -c %d:%i /proc/1/root/. 2>/dev/null)" ]]; then
+    IS_CHROOT=true
+fi
+
 # 2. Varredura e aplicação em partições de boot / instalador (/mnt/installer, /cdrom, /dev/sda1)
 TARGET_BOOTS=()
 
@@ -71,9 +86,9 @@ if [[ -d /cdrom/boot/grub ]] && [[ -w /cdrom/boot/grub ]]; then
     TARGET_BOOTS+=("/cdrom")
 fi
 
-# Se nenhuma partição estiver montada e /dev/sda1 existir, tenta montar em /mnt/installer
+# Se não estiver em chroot, nenhuma partição estiver montada e /dev/sda1 existir, tenta montar em /mnt/installer
 AUTO_MOUNTED=false
-if [[ ${#TARGET_BOOTS[@]} -eq 0 ]] && [[ -b /dev/sda1 ]] && [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+if [[ "${IS_CHROOT}" == "false" ]] && [[ ${#TARGET_BOOTS[@]} -eq 0 ]] && [[ -b /dev/sda1 ]] && [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
     mkdir -p /mnt/installer
     if mount /dev/sda1 /mnt/installer 2>/dev/null; then
         if [[ -d /mnt/installer/boot/grub ]]; then

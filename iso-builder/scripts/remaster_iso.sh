@@ -119,9 +119,13 @@ ROOTFS="${STAGE_DIR}/squashfs"
 
 cleanup_mounts() {
     echo "==> Desfazendo montagens do chroot..."
+    umount -lf "${ROOTFS}/mnt/installer" 2>/dev/null || true
+    umount -lf "${ROOTFS}/mnt"/* 2>/dev/null || true
     umount -lf "${ROOTFS}/sys" 2>/dev/null || true
     umount -lf "${ROOTFS}/proc" 2>/dev/null || true
+    umount -lf "${ROOTFS}/dev/pts" 2>/dev/null || true
     umount -lf "${ROOTFS}/dev" 2>/dev/null || true
+    rm -rf "${ROOTFS}/mnt"/* "${ROOTFS}/tmp"/* 2>/dev/null || true
 }
 trap cleanup_mounts EXIT INT TERM
 
@@ -524,6 +528,7 @@ printf $(du -sx --block-size=1 "${STAGE_DIR}/squashfs" | cut -f1) > "${STAGE_DIR
 echo "==> Gerando nova imagem ISO do Reims Desktop..."
 mkdir -p "$(dirname "${ISO_OUTPUT}")"
 xorriso -as mkisofs \
+    -iso-level 3 \
     -r -V "REIMS_OS" \
     -b boot/grub/i386-pc/eltorito.img \
     -c boot.catalog \
