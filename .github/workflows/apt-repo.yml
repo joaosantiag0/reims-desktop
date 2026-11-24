@@ -2,6 +2,13 @@ name: Deploy APT Repository to GitHub Pages
 
 on:
   push:
+    branches: [development, main, master]
+    paths:
+      - "packaging/**"
+      - "reims-gui/**"
+      - "iso-builder/**"
+      - "scripts/generate_apt_repo.py"
+      - ".github/workflows/apt-repo.yml"
     tags:
       - "v*"
   release:
@@ -12,6 +19,10 @@ permissions:
   contents: write
   pages: write
   id-token: write
+
+concurrency:
+  group: apt-repo-publish
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy-apt:
@@ -28,11 +39,29 @@ jobs:
 
       - name: Build All Reims Debian Packages
         run: |
-          ./packaging/scripts/build_all.sh --mock
+          ./packaging/scripts/build_all.sh
+
+      - name: Import APT signing key
+        env:
+          REIMS_APT_PRIVATE_KEY: ${{ secrets.REIMS_APT_PRIVATE_KEY }}
+        run: |
+          mkdir -p -m 700 "$RUNNER_TEMP/gnupg"
+          printf '%s\n' "$REIMS_APT_PRIVATE_KEY" | gpg --homedir "$RUNNER_TEMP/gnupg" --batch --import
+          gpg --homedir "$RUNNER_TEMP/gnupg" --list-keys
 
       - name: Generate APT Repository Structure
         run: |
           python3 scripts/generate_apt_repo.py --deb-dir dist --out-dir repo
+
+      - name: Sign repository metadata (InRelease + Release.gpg)
+        env:
+          GNUPGHOME: ${{ runner.temp }}/gnupg
+        run: |
+          test -f repo/dists/noble/Release
+          gpg --batch --yes --clearsign -o repo/dists/noble/InRelease repo/dists/noble/Release
+          gpg --batch --yes --armor --detach-sign -o repo/dists/noble/Release.gpg repo/dists/noble/Release
+          echo "---- dists/noble ----"
+          ls -la repo/dists/noble/
 
       - name: Deploy to GitHub Pages (gh-pages)
         uses: peaceiris/actions-gh-pages@v4

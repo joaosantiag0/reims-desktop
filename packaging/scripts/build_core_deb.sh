@@ -34,6 +34,9 @@ chmod -R 644 "${STAGE_DIR}/etc/udev/rules.d/"*
 if [[ -d "${STAGE_DIR}/etc/apt/sources.list.d" ]]; then
     chmod -R 644 "${STAGE_DIR}/etc/apt/sources.list.d/"*
 fi
+if [[ -d "${STAGE_DIR}/usr/share/keyrings" ]]; then
+    chmod -R 644 "${STAGE_DIR}/usr/share/keyrings/"*
+fi
 
 # Executa construtor de pacote
 OUTPUT_DEB="${DIST_DIR}/reims-core_0.1.0_all.deb"

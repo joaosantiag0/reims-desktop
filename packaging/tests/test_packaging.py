@@ -65,12 +65,22 @@ class TestDebianPackaging(unittest.TestCase):
                 self.assertTrue(any("reims.conf" in n for n in names))
                 self.assertTrue(any("99-reims.rules" in n for n in names))
                 self.assertTrue(any("reims.list" in n for n in names))
+                self.assertTrue(any("reims-desktop-archive-keyring.gpg" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-desktop-update" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-boot-theme-apply" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-clean-bloatware" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-update" in n for n in names))
                 self.assertTrue(any("themes/reims/theme.txt" in n for n in names))
                 self.assertTrue(any("themes/reims/background.png" in n for n in names))
+
+                # O source apt deve ser assinado (sem [trusted=yes])
+                for n in names:
+                    if n.endswith("reims.list"):
+                        member = tar.extractfile(tar.getmember(n))
+                        content = member.read().decode("utf-8") if member else ""
+                        self.assertIn("signed-by", content)
+                        self.assertNotIn("trusted=yes", content)
+                        self.assertIn("noble main", content)
 
     def test_build_gui_package(self):
         cmd = [str(self.scripts_dir / "build_gui_deb.sh")]
@@ -116,6 +126,52 @@ class TestDebianPackaging(unittest.TestCase):
                 names = tar.getnames()
                 self.assertTrue(any("usr/bin/reims-desktop-ctl" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-ctl" in n for n in names))
+
+    def test_generate_apt_repo_metadata(self):
+        """generate_apt_repo.py deve produzir dists/pool com Packages por arquitetura."""
+        import sys
+
+        sys.path.insert(0, str(self.repo_root / "scripts"))
+        try:
+            from generate_apt_repo import generate_apt_repo
+        finally:
+            sys.path.pop(0)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = Path(tmp) / "repo"
+            if not all(
+                (self.dist_dir / n).exists()
+                for n in ("reims-core_0.1.0_all.deb", "reims-gui_0.1.0_all.deb", "reims-vgpu_0.1.0_amd64.deb")
+            ):
+                res = subprocess.run([str(self.scripts_dir / "build_all.sh")], capture_output=True, text=True)
+                self.assertEqual(res.returncode, 0, f"build_all.sh failed: {res.stderr}")
+            generate_apt_repo(self.dist_dir, out_dir)
+
+            # Pool com todos os debs
+            pool = out_dir / "pool" / "main"
+            for name in ("reims-core_0.1.0_all.deb", "reims-gui_0.1.0_all.deb", "reims-vgpu_0.1.0_amd64.deb"):
+                self.assertTrue((pool / name).exists(), f"{name} missing from pool")
+
+            # Packages por arquitetura
+            pkg_all = (out_dir / "dists" / "noble" / "main" / "binary-all" / "Packages").read_text()
+            self.assertIn("Package: reims-core", pkg_all)
+            self.assertIn("Package: reims-gui", pkg_all)
+            self.assertNotIn("Package: reims-vgpu", pkg_all)  # vgpu é amd64, vai no índice amd64
+
+            pkg_amd64 = (out_dir / "dists" / "noble" / "main" / "binary-amd64" / "Packages").read_text()
+            self.assertIn("Package: reims-vgpu", pkg_amd64)
+            self.assertIn("Package: reims-core", pkg_amd64)  # all entra no amd64 também
+
+            # Release com checksums dos índices
+            release = (out_dir / "dists" / "noble" / "Release").read_text()
+            self.assertIn("Suite: noble", release)
+            self.assertIn("SHA256:", release)
+            self.assertIn("main/binary-amd64/Packages", release)
+
+            # Landing page instrui assinatura, não trusted=yes
+            index_html = (out_dir / "index.html").read_text()
+            self.assertIn("signed-by=/usr/share/keyrings/reims-desktop-archive-keyring.gpg", index_html)
+            self.assertNotIn("trusted=yes", index_html)
 
 
 if __name__ == "__main__":
