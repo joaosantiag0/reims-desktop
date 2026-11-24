@@ -39,6 +39,9 @@ jobs:
 
       - name: Build All Reims Debian Packages
         run: |
+          # Versão sempre crescente para o apt considerar upgrade a cada publish
+          export REIMS_VERSION="0.1.0+build.$(date -u +%Y%m%d%H%M%S)"
+          echo "Building packages as ${REIMS_VERSION}"
           ./packaging/scripts/build_all.sh
 
       - name: Import APT signing key

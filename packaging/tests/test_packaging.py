@@ -127,6 +127,29 @@ class TestDebianPackaging(unittest.TestCase):
                 self.assertTrue(any("usr/bin/reims-desktop-ctl" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-ctl" in n for n in names))
 
+    def test_build_version_override(self):
+        """REIMS_VERSION deve trocar Version do control e o nome do .deb."""
+        env = dict(os.environ, REIMS_VERSION="0.1.1+test.20261124")
+        res = subprocess.run(
+            [str(self.scripts_dir / "build_core_deb.sh")],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        self.assertEqual(res.returncode, 0, f"build_core_deb.sh failed: {res.stderr}")
+
+        deb = self.dist_dir / "reims-core_0.1.1+test.20261124_all.deb"
+        self.assertTrue(deb.exists(), "Version-overridden deb was not created")
+
+        members = self._extract_deb_members(deb)
+        with tempfile.TemporaryDirectory() as tmp:
+            ctrl_tar = Path(tmp) / "control.tar.gz"
+            ctrl_tar.write_bytes(members["control.tar.gz"])
+            with tarfile.open(ctrl_tar, "r:gz") as tar:
+                member = tar.extractfile("./control") or tar.extractfile("./DEBIAN/control")
+                control = member.read().decode("utf-8") if member else ""
+                self.assertIn("Version: 0.1.1+test.20261124", control)
+
     def test_generate_apt_repo_metadata(self):
         """generate_apt_repo.py deve produzir dists/pool com Packages por arquitetura."""
         import sys

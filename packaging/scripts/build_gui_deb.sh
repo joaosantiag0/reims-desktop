@@ -7,6 +7,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 DIST_DIR="${REPO_ROOT}/dist"
 STAGE_DIR="${REPO_ROOT}/build/stage-reims-gui"
 
+# Versão do pacote: sobrescreva com REIMS_VERSION (ex.: 0.1.0+build.20261124)
+REIMS_VERSION="${REIMS_VERSION:-0.1.0}"
+
 echo "==> Iniciando empacotamento do reims-gui..."
 
 # Limpeza e preparação
@@ -34,8 +37,11 @@ fi
 find "${STAGE_DIR}/usr/share/icons" -type f -exec chmod 644 {} +
 find "${STAGE_DIR}/usr/share/pixmaps" -type f -exec chmod 644 {} +
 
-# Executa construtor de pacote
-OUTPUT_DEB="${DIST_DIR}/reims-gui_0.1.0_all.deb"
+# Aplica a versão no control e gera o pacote
+sed -i.bak "s/^Version: .*/Version: ${REIMS_VERSION}/" "${STAGE_DIR}/DEBIAN/control"
+rm -f "${STAGE_DIR}/DEBIAN/control.bak"
+
+OUTPUT_DEB="${DIST_DIR}/reims-gui_${REIMS_VERSION}_all.deb"
 python3 "${SCRIPT_DIR}/make_deb.py" "${STAGE_DIR}" "${OUTPUT_DEB}"
 
 echo "==> Pacote reims-gui gerado com sucesso em: ${OUTPUT_DEB}"

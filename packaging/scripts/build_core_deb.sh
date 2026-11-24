@@ -7,6 +7,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 DIST_DIR="${REPO_ROOT}/dist"
 STAGE_DIR="${REPO_ROOT}/build/stage-reims-core"
 
+# Versão do pacote: sobrescreva com REIMS_VERSION (ex.: 0.1.0+build.20261124)
+REIMS_VERSION="${REIMS_VERSION:-0.1.0}"
+
 echo "==> Iniciando empacotamento do reims-core..."
 
 # Limpeza e preparação
@@ -38,8 +41,11 @@ if [[ -d "${STAGE_DIR}/usr/share/keyrings" ]]; then
     chmod -R 644 "${STAGE_DIR}/usr/share/keyrings/"*
 fi
 
-# Executa construtor de pacote
-OUTPUT_DEB="${DIST_DIR}/reims-core_0.1.0_all.deb"
+# Aplica a versão no control e gera o pacote
+sed -i.bak "s/^Version: .*/Version: ${REIMS_VERSION}/" "${STAGE_DIR}/DEBIAN/control"
+rm -f "${STAGE_DIR}/DEBIAN/control.bak"
+
+OUTPUT_DEB="${DIST_DIR}/reims-core_${REIMS_VERSION}_all.deb"
 python3 "${SCRIPT_DIR}/make_deb.py" "${STAGE_DIR}" "${OUTPUT_DEB}"
 
 echo "==> Pacote reims-core gerado com sucesso em: ${OUTPUT_DEB}"

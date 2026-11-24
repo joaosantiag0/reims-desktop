@@ -28,14 +28,19 @@ fi
 
 echo "==> Iniciando compilação do pacote reims-vgpu (amd64)..."
 
+# Versão do pacote: sobrescreva com REIMS_VERSION (ex.: 0.1.0+build.20261124)
+REIMS_VERSION="${REIMS_VERSION:-0.1.0}"
+
 rm -rf "${STAGE_DIR}"
 mkdir -p "${STAGE_DIR}/DEBIAN" \
          "${STAGE_DIR}/usr/bin" \
          "${STAGE_DIR}/usr/lib/reims" \
          "${DIST_DIR}"
 
-# Copia controle do pacote
+# Copia controle do pacote e aplica a versão
 cp "${REPO_ROOT}/packaging/templates/reims-vgpu/DEBIAN/control" "${STAGE_DIR}/DEBIAN/"
+sed -i.bak "s/^Version: .*/Version: ${REIMS_VERSION}/" "${STAGE_DIR}/DEBIAN/control"
+rm -f "${STAGE_DIR}/DEBIAN/control.bak"
 
 if [[ "${UPSTREAM_BUILD}" == "true" ]]; then
     echo "==> Clonando e compilando steelbrain/reims-vgpu em ambiente Linux..."
@@ -66,6 +71,8 @@ else
     echo "==> [MODO ESTÁVEL/SIMULADO] Empacotando binários do reims-vgpu..."
     cp "${REPO_ROOT}/packaging/templates/reims-vgpu/usr/bin/reims-desktop-ctl" "${STAGE_DIR}/usr/bin/reims-desktop-ctl"
     chmod +x "${STAGE_DIR}/usr/bin/reims-desktop-ctl"
+    sed -i.bak "s/^VERSION=\"0.1.0\"/VERSION=\"${REIMS_VERSION}\"/" "${STAGE_DIR}/usr/bin/reims-desktop-ctl"
+    rm -f "${STAGE_DIR}/usr/bin/reims-desktop-ctl.bak"
 
     cat << 'EOF' > "${STAGE_DIR}/usr/bin/reims-desktop-util"
 #!/usr/bin/env bash
@@ -97,7 +104,7 @@ for f in "${STAGE_DIR}/usr/bin/"* "${STAGE_DIR}/usr/lib/reims/"*; do
 done
 
 # Gera o pacote Debian
-OUTPUT_DEB="${DIST_DIR}/reims-vgpu_0.1.0_amd64.deb"
+OUTPUT_DEB="${DIST_DIR}/reims-vgpu_${REIMS_VERSION}_amd64.deb"
 python3 "${SCRIPT_DIR}/make_deb.py" "${STAGE_DIR}" "${OUTPUT_DEB}"
 
 echo "==> Pacote reims-vgpu gerado com sucesso em: ${OUTPUT_DEB}"
