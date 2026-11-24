@@ -215,6 +215,12 @@ for SKEL_DIR in "${ROOTFS}/etc/skel" "${ROOTFS}/home/lubuntu" "${ROOTFS}/home/re
     fi
 done
 
+# Injeta o tema oficial do Reims Desktop no LXQt
+if [[ -d "${CUSTOM_DIR}/theme/reims" ]]; then
+    mkdir -p "${ROOTFS}/usr/share/lxqt/themes/reims"
+    cp -rf "${CUSTOM_DIR}/theme/reims/"* "${ROOTFS}/usr/share/lxqt/themes/reims/"
+fi
+
 # Configura ícone do Reims Desktop no Menu Iniciar do painel LXQt
 for PANEL_CONF in \
     "${ROOTFS}/etc/xdg/xdg-Lubuntu/lxqt/panel.conf" \
@@ -222,9 +228,17 @@ for PANEL_CONF in \
     "${ROOTFS}/etc/skel/.config/lxqt/panel.conf" \
     "${ROOTFS}/home/lubuntu/.config/lxqt/panel.conf"; do
     if [[ -f "${PANEL_CONF}" ]]; then
-        sed -i '/^\[mainmenu\]/a icon=/usr/share/pixmaps/reims-logo.png' "${PANEL_CONF}"
+        sed -i '/icon=\/usr\/share\/pixmaps\/reims-logo.png/d' "${PANEL_CONF}" || true
+        sed -i '/^\[mainmenu\]/a icon=/usr/share/pixmaps/reims-logo.png' "${PANEL_CONF}" || true
+        sed -i '/background-color=@Variant/d' "${PANEL_CONF}" || true
+        sed -i '/font-color=@Variant/d' "${PANEL_CONF}" || true
     fi
 done
+if [[ -f "${ROOTFS}/etc/xdg/xdg-Lubuntu/lxqt/panel.conf" ]]; then
+    mkdir -p "${ROOTFS}/etc/skel/.config/lxqt" "${ROOTFS}/home/lubuntu/.config/lxqt"
+    cp -f "${ROOTFS}/etc/xdg/xdg-Lubuntu/lxqt/panel.conf" "${ROOTFS}/etc/skel/.config/lxqt/panel.conf" || true
+    cp -f "${ROOTFS}/etc/xdg/xdg-Lubuntu/lxqt/panel.conf" "${ROOTFS}/home/lubuntu/.config/lxqt/panel.conf" || true
+fi
 
 # Configura Branding do Calamares (Reims Desktop)
 mkdir -p "${ROOTFS}/etc/calamares/branding/reims"

@@ -43,7 +43,7 @@ class TestIsoRemastering(unittest.TestCase):
         self.assertTrue(lxqt_conf.exists())
 
         self.assertIn("reims-wallpaper.svg", pcmanfm.read_text(encoding="utf-8"))
-        self.assertIn("Flat-Dark", lxqt_conf.read_text(encoding="utf-8"))
+        self.assertIn("reims", lxqt_conf.read_text(encoding="utf-8"))
 
     def test_installer_prompt_and_boot_logo_exist(self):
         prompt_py = self.custom_dir / "reims-installer-prompt.py"
