@@ -18,4 +18,9 @@ if command -v modprobe >/dev/null 2>&1; then
     modprobe kvm || true
 fi
 
+# Aplica tema do seletor de boot GRUB se a ferramenta estiver presente
+if [ -x /usr/bin/reims-boot-theme-apply ]; then
+    /usr/bin/reims-boot-theme-apply || true
+fi
+
 exit 0

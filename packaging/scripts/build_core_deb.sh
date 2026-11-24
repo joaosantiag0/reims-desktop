@@ -16,6 +16,13 @@ mkdir -p "${STAGE_DIR}" "${DIST_DIR}"
 # Copia arquivos do template
 cp -r "${REPO_ROOT}/packaging/templates/reims-core/"* "${STAGE_DIR}/"
 
+# Injeta tema oficial do GRUB do Reims Desktop no pacote reims-core
+mkdir -p "${STAGE_DIR}/usr/share/grub/themes/reims" "${STAGE_DIR}/etc/default/grub.d"
+cp -rf "${REPO_ROOT}/iso-builder/customization/grub/"* "${STAGE_DIR}/usr/share/grub/themes/reims/"
+cp -f "${REPO_ROOT}/iso-builder/customization/grub/50_reims_theme.cfg" "${STAGE_DIR}/etc/default/grub.d/50_reims_theme.cfg"
+chmod -R 644 "${STAGE_DIR}/usr/share/grub/themes/reims/"*
+chmod 644 "${STAGE_DIR}/etc/default/grub.d/50_reims_theme.cfg"
+
 # Garante permissões adequadas
 chmod 755 "${STAGE_DIR}/DEBIAN"
 chmod 755 "${STAGE_DIR}/DEBIAN/postinst"

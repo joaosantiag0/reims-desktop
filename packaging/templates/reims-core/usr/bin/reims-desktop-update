@@ -137,6 +137,11 @@ def main() -> int:
         ok, msg = updater.update_from_git(branch=branch, commit=args.commit, dry_run=args.dry_run)
         if ok:
             print(f"✓ {msg}")
+            # Ensure bootloader theme is applied
+            apply_tool = "/usr/bin/reims-boot-theme-apply"
+            if os.path.exists(apply_tool) and os.access(apply_tool, os.X_OK):
+                print("==> Applying Reims Desktop bootloader theme...")
+                subprocess.run([apply_tool], check=False)
             if args.full or args.system:
                 print("==> Updating Ubuntu base distribution packages (APT)...")
                 ok_sys, msg_sys = updater.update_system(dry_run=args.dry_run)

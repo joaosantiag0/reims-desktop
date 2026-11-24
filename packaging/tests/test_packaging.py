@@ -66,7 +66,10 @@ class TestDebianPackaging(unittest.TestCase):
                 self.assertTrue(any("99-reims.rules" in n for n in names))
                 self.assertTrue(any("reims.list" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-desktop-update" in n for n in names))
+                self.assertTrue(any("usr/bin/reims-boot-theme-apply" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-update" in n for n in names))
+                self.assertTrue(any("themes/reims/theme.txt" in n for n in names))
+                self.assertTrue(any("themes/reims/background.png" in n for n in names))
 
     def test_build_gui_package(self):
         cmd = [str(self.scripts_dir / "build_gui_deb.sh")]

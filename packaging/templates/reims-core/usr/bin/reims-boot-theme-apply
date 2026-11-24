@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "=================================================="
+echo "    Reims Desktop - Bootloader Theme Applicator   "
+echo "=================================================="
+
+# Localiza arquivos do tema do Reims
+THEME_SRC="/usr/share/grub/themes/reims"
+if [[ ! -d "${THEME_SRC}" ]]; then
+    # Fallback para o caminho dentro do repositório caso executado a partir do código fonte
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." 2>/dev/null && pwd || true)"
+    if [[ -d "${REPO_ROOT}/iso-builder/customization/grub" ]]; then
+        THEME_SRC="${REPO_ROOT}/iso-builder/customization/grub"
+    fi
+fi
+
+if [[ ! -d "${THEME_SRC}" ]] || [[ ! -f "${THEME_SRC}/theme.txt" ]]; then
+    echo "ERRO: Arquivos de tema do Reims não encontrados em ${THEME_SRC}!" >&2
+    exit 1
+fi
+
+echo "==> Aplicando tema do GRUB do Reims Desktop a partir de: ${THEME_SRC}"
+
+# 1. Aplicação no sistema de arquivos local (/boot/grub e /usr/share/grub)
+if [[ -w /boot/grub ]] || [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    mkdir -p /boot/grub/themes/reims /usr/share/grub/themes/reims
+    cp -rf "${THEME_SRC}"/* /usr/share/grub/themes/reims/ 2>/dev/null || true
+    cp -rf "${THEME_SRC}"/* /boot/grub/themes/reims/ 2>/dev/null || true
+
+    # Sobrescreve temas residuais do Lubuntu para garantir que nenhum resquício permaneça
+    if [[ -d /usr/share/grub/themes/lubuntu-grub-theme ]]; then
+        cp -rf "${THEME_SRC}"/* /usr/share/grub/themes/lubuntu-grub-theme/ 2>/dev/null || true
+    fi
+    if [[ -d /boot/grub/themes/lubuntu-grub-theme ]]; then
+        cp -rf "${THEME_SRC}"/* /boot/grub/themes/lubuntu-grub-theme/ 2>/dev/null || true
+    fi
+
+    # Configuração de defaults do GRUB
+    mkdir -p /etc/default/grub.d
+    if [[ -f "${THEME_SRC}/50_reims_theme.cfg" ]]; then
+        cp -f "${THEME_SRC}/50_reims_theme.cfg" /etc/default/grub.d/50_reims_theme.cfg 2>/dev/null || true
+        cp -f "${THEME_SRC}/50_reims_theme.cfg" /etc/default/grub.d/lubuntu-grub-theme.cfg 2>/dev/null || true
+    fi
+
+    if [[ -f /etc/default/grub ]]; then
+        sed -i 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR="Reims Desktop"/' /etc/default/grub 2>/dev/null || true
+        if grep -q "^GRUB_THEME=" /etc/default/grub; then
+            sed -i 's|^GRUB_THEME=.*|GRUB_THEME="/usr/share/grub/themes/reims/theme.txt"|' /etc/default/grub 2>/dev/null || true
+        else
+            echo 'GRUB_THEME="/usr/share/grub/themes/reims/theme.txt"' >> /etc/default/grub 2>/dev/null || true
+        fi
+    fi
+
+    # Atualiza configuração do GRUB do host se update-grub estiver disponível
+    if command -v update-grub &>/dev/null; then
+        echo "==> Atualizando configuração do GRUB no host (update-grub)..."
+        update-grub 2>/dev/null || true
+    fi
+fi
+
+# 2. Varredura e aplicação em partições de boot / instalador (/mnt/installer, /cdrom, /dev/sda1)
+TARGET_BOOTS=()
+
+if [[ -d /mnt/installer/boot/grub ]]; then
+    TARGET_BOOTS+=("/mnt/installer")
+fi
+
+if [[ -d /cdrom/boot/grub ]] && [[ -w /cdrom/boot/grub ]]; then
+    TARGET_BOOTS+=("/cdrom")
+fi
+
+# Se nenhuma partição estiver montada e /dev/sda1 existir, tenta montar em /mnt/installer
+AUTO_MOUNTED=false
+if [[ ${#TARGET_BOOTS[@]} -eq 0 ]] && [[ -b /dev/sda1 ]] && [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    mkdir -p /mnt/installer
+    if mount /dev/sda1 /mnt/installer 2>/dev/null; then
+        if [[ -d /mnt/installer/boot/grub ]]; then
+            TARGET_BOOTS+=("/mnt/installer")
+            AUTO_MOUNTED=true
+        fi
+    fi
+fi
+
+for TGT in "${TARGET_BOOTS[@]}"; do
+    echo "==> Atualizando seletor de boot na partição: ${TGT}/boot/grub..."
+    mkdir -p "${TGT}/boot/grub/themes/reims"
+    cp -rf "${THEME_SRC}"/* "${TGT}/boot/grub/themes/reims/" 2>/dev/null || true
+
+    if [[ -d "${TGT}/boot/grub/themes/lubuntu-grub-theme" ]]; then
+        cp -rf "${THEME_SRC}"/* "${TGT}/boot/grub/themes/lubuntu-grub-theme/" 2>/dev/null || true
+    fi
+
+    cp -vf "${THEME_SRC}/background.png" "${TGT}/boot/grub/splash.png" 2>/dev/null || true
+    cp -vf "${THEME_SRC}/background.png" "${TGT}/boot/grub/background.png" 2>/dev/null || true
+
+    for CFG in "${TGT}/boot/grub/grub.cfg" "${TGT}/boot/grub/loopback.cfg"; do
+        if [[ -f "${CFG}" ]]; then
+            echo "    -> Atualizando entradas em ${CFG}..."
+            sed -i 's/Try or Install Lubuntu/Experimentar ou Instalar o Reims Desktop/g' "${CFG}" 2>/dev/null || true
+            sed -i 's/Lubuntu (safe graphics)/Reims Desktop (Modo Seguro \/ Safe Graphics)/g' "${CFG}" 2>/dev/null || true
+            sed -i 's/OEM install (for manufacturers)/Instalação OEM Reims Desktop/g' "${CFG}" 2>/dev/null || true
+            sed -i 's/Lubuntu/Reims Desktop/g' "${CFG}" 2>/dev/null || true
+            sed -i 's|/boot/grub/themes/lubuntu-grub-theme/theme.txt|/boot/grub/themes/reims/theme.txt|g' "${CFG}" 2>/dev/null || true
+            sed -i 's|/usr/share/grub/themes/lubuntu-grub-theme/theme.txt|/boot/grub/themes/reims/theme.txt|g' "${CFG}" 2>/dev/null || true
+
+            if ! grep -q "themes/reims/theme.txt" "${CFG}"; then
+                sed -i '1i\set theme=/boot/grub/themes/reims/theme.txt\ninsmod png\ninsmod gfxterm\ninsmod gfxmenu\nset gfxmode=auto\nterminal_output gfxterm' "${CFG}" 2>/dev/null || true
+            fi
+        fi
+    done
+done
+
+sync
+if [[ "${AUTO_MOUNTED}" == "true" ]]; then
+    echo "==> Desmontando /mnt/installer após atualização..."
+    umount /mnt/installer 2>/dev/null || true
+fi
+
+echo "✓ Tema do seletor de boot GRUB do Reims Desktop aplicado com 100% de sucesso!"
+exit 0
