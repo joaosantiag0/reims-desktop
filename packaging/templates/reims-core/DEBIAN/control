@@ -4,7 +4,7 @@ Section: admin
 Priority: optional
 Architecture: all
 Maintainer: Reims Desktop Team <dev@reims-desktop.org>
-Depends: qemu-system-x86, ovmf, swtpm, libvulkan1, mesa-vulkan-drivers, udev
+Depends: qemu-system-x86, ovmf, swtpm, libvulkan1, mesa-vulkan-drivers, udev, openssh-server, ufw
 Description: Core configuration and kernel rules for Reims Desktop (reims-vgpu)
  Configures kernel modules (/dev/udmabuf, kvm) and udev access rules
  required for accelerated macOS guest virtualization on Linux hosts.

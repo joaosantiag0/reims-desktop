@@ -471,7 +471,27 @@ update-initramfs -c -k "${KERNEL_VER}" || update-initramfs -u || true
 echo "==> Atualizando configurações do GRUB no chroot..."
 command -v update-grub &>/dev/null && update-grub || true
 
-# 7. Limpeza de cache
+# 7. Configura servidor OpenSSH com suporte a senha e firewall UFW liberado
+echo "==> Configurando servidor SSH e liberação de LAN..."
+apt-get install -y openssh-server ufw 2>/dev/null || true
+mkdir -p /etc/ssh/sshd_config.d
+cat << 'SSHEOF' > /etc/ssh/sshd_config.d/60-reims-ssh.conf
+# Reims Desktop LAN SSH Access
+Port 22
+PasswordAuthentication yes
+KbdInteractiveAuthentication yes
+PermitRootLogin prohibit-password
+PubkeyAuthentication yes
+SSHEOF
+
+ssh-keygen -A 2>/dev/null || true
+systemctl enable ssh.socket 2>/dev/null || true
+systemctl enable ssh 2>/dev/null || true
+if command -v ufw &>/dev/null; then
+    ufw allow 22/tcp comment 'Reims Desktop SSH' 2>/dev/null || true
+fi
+
+# 8. Limpeza de cache
 apt-get clean
 rm -rf /tmp/*
 EOF
