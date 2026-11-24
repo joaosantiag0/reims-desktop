@@ -24,11 +24,11 @@ cp -r "${REPO_ROOT}/reims-gui/src/reims_gui/"* "${PYTHON_DEST}/"
 # Garante permissões de execução nos scripts
 chmod 755 "${STAGE_DIR}/DEBIAN"
 chmod 755 "${STAGE_DIR}/DEBIAN/postinst"
-chmod 755 "${STAGE_DIR}/usr/bin/reims-gui"
+chmod 755 "${STAGE_DIR}/usr/bin/"*
 
 # Permissões nos arquivos estáticos
-chmod 644 "${STAGE_DIR}/usr/share/applications/reims-gui.desktop"
-chmod 644 "${STAGE_DIR}/usr/share/icons/hicolor/scalable/apps/reims-gui.svg"
+chmod 644 "${STAGE_DIR}/usr/share/applications/"*.desktop
+chmod 644 "${STAGE_DIR}/usr/share/icons/hicolor/scalable/apps/"*.svg
 
 # Executa construtor de pacote
 OUTPUT_DEB="${DIST_DIR}/reims-gui_0.1.0_all.deb"

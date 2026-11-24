@@ -1,4 +1,4 @@
-"""Testes unitários para o ReimsOS Live Installer Prompt."""
+"""Testes unitários para o Reims Desktop Live Installer Prompt."""
 from __future__ import annotations
 
 import os
@@ -20,7 +20,7 @@ prompt_module = importlib.import_module("reims-installer-prompt")
 
 
 class TestReimsInstallerPrompt(unittest.TestCase):
-    """Bateria de testes para o prompt de boas-vindas do ReimsOS."""
+    """Bateria de testes para o prompt de boas-vindas do Reims Desktop."""
 
     def test_translations_completeness(self) -> None:
         """Verifica se todas as chaves essenciais estao presentes em todos os idiomas."""
@@ -88,21 +88,21 @@ class TestReimsInstallerPrompt(unittest.TestCase):
         )
 
         # Verifica textos iniciais
-        self.assertEqual(window.lbl_title.text(), "ReimsOS 24.04 LTS")
-        self.assertIn("ReimsOS", window.btn_live.text())
-        self.assertIn("ReimsOS", window.btn_install.text())
+        self.assertEqual(window.lbl_title.text(), "Reims Desktop 24.04 LTS")
+        self.assertIn("Reims Desktop", window.btn_live.text())
+        self.assertIn("Reims Desktop", window.btn_install.text())
 
         # Testa troca de idioma para en_US
         idx = window.cb_lang.findData("en_US")
         window.cb_lang.setCurrentIndex(idx)
         self.assertEqual(window.current_locale, "en_US")
-        self.assertEqual(window.btn_live.text(), "Try ReimsOS (Live CD)")
+        self.assertEqual(window.btn_live.text(), "Try Reims Desktop (Live CD)")
 
         # Testa troca de idioma para pt_BR
         idx_pt = window.cb_lang.findData("pt_BR")
         window.cb_lang.setCurrentIndex(idx_pt)
         self.assertEqual(window.current_locale, "pt_BR")
-        self.assertEqual(window.btn_live.text(), "Experimentar ReimsOS (Live CD)")
+        self.assertEqual(window.btn_live.text(), "Experimentar Reims Desktop (Live CD)")
 
         # Testa acao do botao Live CD
         window.handle_live_clicked()

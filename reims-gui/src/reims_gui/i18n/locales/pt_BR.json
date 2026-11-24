@@ -1,5 +1,5 @@
 {
-  "app.title": "Reims Control Center",
+  "app.title": "Reims Desktop",
   "app.subtitle": "Gerenciador de Máquinas Virtuais macOS com Aceleração Vulkan",
   "header.new_vm": "+ Nova Máquina Virtual",
   "header.refresh": "Atualizar",
@@ -44,10 +44,10 @@
   "wizard.btn.cancel": "Cancelar",
   "dialog.confirm_delete": "Tem certeza que deseja excluir a máquina '{name}'?",
   "dialog.confirm_delete_title": "Excluir Máquina Virtual",
-  "update.dialog.title": "Atualização do ReimsOS",
+  "update.dialog.title": "Atualização do Reims Desktop",
   "update.dialog.version_info": "Versão instalada: {current}  ➔  Nova versão: {latest}",
   "update.dialog.release_notes": "Notas da Versão e Modificações:",
-  "update.dialog.status_ready": "Pronto para baixar e atualizar os componentes do ReimsOS.",
+  "update.dialog.status_ready": "Pronto para baixar e atualizar os componentes do Reims Desktop.",
   "update.dialog.status_downloading": "Baixando pacotes do GitHub Releases...",
   "update.dialog.status_installing": "Instalando pacotes no sistema operacional...",
   "update.dialog.status_success": "Sistema atualizado com sucesso!",
@@ -55,6 +55,6 @@
   "update.dialog.btn_update_now": "Atualizar Agora",
   "update.dialog.btn_cancel": "Cancelar",
   "update.dialog.btn_done": "Concluir",
-  "update.dialog.up_to_date_title": "ReimsOS Atualizado",
-  "update.dialog.up_to_date_msg": "O seu sistema ReimsOS (v{version}) já está na versão mais recente disponível."
+  "update.dialog.up_to_date_title": "Reims Desktop Atualizado",
+  "update.dialog.up_to_date_msg": "O seu sistema Reims Desktop (v{version}) já está na versão mais recente disponível."
 }

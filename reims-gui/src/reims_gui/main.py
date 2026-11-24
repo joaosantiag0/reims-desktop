@@ -15,11 +15,11 @@ from reims_gui.ui.theme import DARK_THEME_QSS
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Reims Control Center GUI for reims-ctl")
+    parser = argparse.ArgumentParser(description="Reims Desktop GUI for reims-desktop-ctl")
     parser.add_argument(
         "--mock",
         action="store_true",
-        help="Run in mock/demo mode without requiring reims-ctl or real KVM/Vulkan hardware",
+        help="Run in mock/demo mode without requiring reims-desktop-ctl or real KVM/Vulkan hardware",
     )
     parser.add_argument(
         "--lang",
@@ -31,7 +31,7 @@ def main():
         "--binary",
         type=str,
         default=None,
-        help="Custom path to reims-ctl binary",
+        help="Custom path to reims-desktop-ctl binary",
     )
     args = parser.parse_args()
 
@@ -39,8 +39,8 @@ def main():
 
     # High-DPI attributes are handled automatically in Qt 6
     app = QApplication(sys.argv)
-    app.setApplicationName("Reims Control Center")
-    app.setOrganizationName("ReimsOS")
+    app.setApplicationName("Reims Desktop")
+    app.setOrganizationName("Reims Desktop")
     app.setStyleSheet(DARK_THEME_QSS)
 
     # Initialize translator

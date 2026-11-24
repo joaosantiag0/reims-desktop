@@ -86,31 +86,38 @@ class TestSystemUpdater(unittest.TestCase):
 
     def test_cli_reims_update(self):
         repo_root = Path(__file__).resolve().parent.parent.parent
-        cli_script = repo_root / "packaging" / "templates" / "reims-core" / "usr" / "bin" / "reims-update"
-        self.assertTrue(cli_script.exists())
+        cli_desktop_update = repo_root / "packaging" / "templates" / "reims-core" / "usr" / "bin" / "reims-desktop-update"
+        cli_update = repo_root / "packaging" / "templates" / "reims-core" / "usr" / "bin" / "reims-update"
+        self.assertTrue(cli_desktop_update.exists())
+        self.assertTrue(cli_update.exists())
 
         env = os.environ.copy()
         env["PYTHONPATH"] = str(repo_root / "reims-gui" / "src")
 
-        # 1. Test --version
-        res_ver = subprocess.run([sys.executable, str(cli_script), "--version"], capture_output=True, text=True, env=env)
+        # 1. Test --version on reims-desktop-update
+        res_ver = subprocess.run([sys.executable, str(cli_desktop_update), "--version"], capture_output=True, text=True, env=env)
         self.assertEqual(res_ver.returncode, 0)
-        self.assertIn("ReimsOS versão instalada", res_ver.stdout)
+        self.assertIn("Reims Desktop versão instalada", res_ver.stdout)
 
-        # 2. Test --mock --check
-        res_check = subprocess.run([sys.executable, str(cli_script), "--mock", "--check"], capture_output=True, text=True, env=env)
+        # 2. Test --mock --check on reims-desktop-update
+        res_check = subprocess.run([sys.executable, str(cli_desktop_update), "--mock", "--check"], capture_output=True, text=True, env=env)
         self.assertEqual(res_check.returncode, 0)
         self.assertIn("Nova versão encontrada", res_check.stdout)
 
-        # 3. Test --mock --dry-run --yes
-        res_run = subprocess.run([sys.executable, str(cli_script), "--mock", "--dry-run", "--yes"], capture_output=True, text=True, env=env)
+        # 3. Test --mock --dry-run --yes on reims-desktop-update
+        res_run = subprocess.run([sys.executable, str(cli_desktop_update), "--mock", "--dry-run", "--yes"], capture_output=True, text=True, env=env)
         self.assertEqual(res_run.returncode, 0)
-        self.assertIn("Atualização do ReimsOS concluída com sucesso", res_run.stdout)
+        self.assertIn("Atualização do Reims Desktop concluída com sucesso", res_run.stdout)
 
-        # 4. Test --mock --git --dry-run
-        res_git = subprocess.run([sys.executable, str(cli_script), "--mock", "--git", "--dry-run"], capture_output=True, text=True, env=env)
+        # 4. Test --mock --git --dry-run on reims-desktop-update
+        res_git = subprocess.run([sys.executable, str(cli_desktop_update), "--mock", "--git", "--dry-run"], capture_output=True, text=True, env=env)
         self.assertEqual(res_git.returncode, 0)
         self.assertIn("Simulação de atualização via git", res_git.stdout)
+
+        # 5. Test wrapper reims-update
+        res_wrap = subprocess.run([str(cli_update), "--version"], capture_output=True, text=True, env=env)
+        self.assertEqual(res_wrap.returncode, 0)
+        self.assertIn("Reims Desktop", res_wrap.stdout)
 
     def test_update_dialog_mock(self):
         os.environ["REIMS_MOCK_UPDATER"] = "1"

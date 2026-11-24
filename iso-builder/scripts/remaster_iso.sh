@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# ReimsOS ISO Remastering Script
-# Customiza a ISO Live para aplicar a identidade visual do ReimsOS,
+# Reims Desktop ISO Remastering Script
+# Customiza a ISO Live para aplicar a identidade visual do Reims Desktop,
 # remover bloatware e pré-instalar o Reims Control Center no Desktop.
 # ==============================================================================
 set -euo pipefail
@@ -28,7 +28,7 @@ for arg in "${@:-}"; do
 done
 
 echo "=================================================================="
-echo "          ReimsOS: Remasterização da Identidade Visual e Live CD   "
+echo "          Reims Desktop: Remasterização da Identidade Visual e Live CD   "
 echo "=================================================================="
 
 # 1. Validação de Arquivos de Customização
@@ -39,7 +39,7 @@ if [[ ! -f "${CUSTOM_DIR}/wallpaper.svg" ]]; then
 fi
 
 if [[ ! -f "${CUSTOM_DIR}/reims-logo.png" ]]; then
-    echo "ERRO: Logo do ReimsOS ${CUSTOM_DIR}/reims-logo.png não encontrado!" >&2
+    echo "ERRO: Logo do Reims Desktop ${CUSTOM_DIR}/reims-logo.png não encontrado!" >&2
     exit 1
 fi
 
@@ -66,13 +66,13 @@ fi
 if [[ "${DRY_RUN}" == "true" ]]; then
     echo ""
     echo "==> [MODO SIMULAÇÃO / DRY-RUN ATIVO]"
-    echo "✓ Wallpaper do ReimsOS validado."
-    echo "✓ Logo e ícones de boot do ReimsOS validados."
+    echo "✓ Wallpaper do Reims Desktop validado."
+    echo "✓ Logo e ícones de boot do Reims Desktop validados."
     echo "✓ Suporte e configuração de touchpad (tap-to-click e gestures) validados."
     echo "✓ Prompt de boas-vindas do Live CD (Live vs Instalar) validado."
     echo "✓ Lista de pacotes bloatware a remover ($(grep -vc '^#' "${CUSTOM_DIR}/remove-packages.list" | tr -d ' ') pacotes)."
     echo "✓ Configurações de tema escuro e painel LXQt validadas."
-    echo "✓ Calamares branding configurado para o ReimsOS."
+    echo "✓ Calamares branding configurado para o Reims Desktop."
     echo "✓ Script de remasterização testado com 100% de sucesso!"
     exit 0
 fi
@@ -125,12 +125,12 @@ if [[ -e "${ROOTFS}/etc/resolv.conf" ]]; then
 fi
 cp -L /etc/resolv.conf "${ROOTFS}/etc/resolv.conf"
 
-# Copia pacotes ReimsOS
+# Copia pacotes Reims Desktop
 mkdir -p "${ROOTFS}/tmp/reims-pkgs"
 cp "${DIST_DIR}"/*.deb "${ROOTFS}/tmp/reims-pkgs/"
 cp "${CUSTOM_DIR}/remove-packages.list" "${ROOTFS}/tmp/remove-packages.list"
 
-# Injeta Wallpaper do ReimsOS
+# Injeta Wallpaper do Reims Desktop
 mkdir -p "${ROOTFS}/usr/share/backgrounds"
 cp "${CUSTOM_DIR}/wallpaper.svg" "${ROOTFS}/usr/share/backgrounds/reims-wallpaper.svg"
 
@@ -145,16 +145,16 @@ for SKEL_DIR in "${ROOTFS}/etc/skel" "${ROOTFS}/home/lubuntu" "${ROOTFS}/home/re
     fi
 done
 
-# Configura Branding do Calamares (ReimsOS)
+# Configura Branding do Calamares (Reims Desktop)
 mkdir -p "${ROOTFS}/etc/calamares/branding/reims"
 # Se existir branding do Lubuntu, copia como base (show.qml, slides, traduções em lang/)
 if [[ -d "${ROOTFS}/etc/calamares/branding/lubuntu" ]]; then
     cp -r "${ROOTFS}/etc/calamares/branding/lubuntu/"* "${ROOTFS}/etc/calamares/branding/reims/"
 fi
-# Sobrescreve com as definições oficiais do ReimsOS
+# Sobrescreve com as definições oficiais do Reims Desktop
 cp -r "${CONFIG_DIR}/calamares/branding/reims/"* "${ROOTFS}/etc/calamares/branding/reims/"
 
-# Aplica settings.conf customizado do ReimsOS (remove pkgselect/tela de tipo de instalação e snaps)
+# Aplica settings.conf customizado do Reims Desktop (remove pkgselect/tela de tipo de instalação e snaps)
 if [[ -f "${CONFIG_DIR}/calamares/settings.conf" ]]; then
     cp -v "${CONFIG_DIR}/calamares/settings.conf" "${ROOTFS}/etc/calamares/settings.conf"
 fi
@@ -164,28 +164,28 @@ rm -f "${ROOTFS}/etc/calamares/modules/pkgselect"* "${ROOTFS}/usr/lib/x86_64-lin
 
 # Sobrescreve também o branding do lubuntu caso o calamares aponte para ele
 if [[ -d "${ROOTFS}/etc/calamares/branding/lubuntu" ]]; then
-    sed -i 's/productName: .*/productName: ReimsOS/' "${ROOTFS}/etc/calamares/branding/lubuntu/branding.desc" || true
-    sed -i 's/shortProductName: .*/shortProductName: ReimsOS/' "${ROOTFS}/etc/calamares/branding/lubuntu/branding.desc" || true
-    sed -i 's/versionedName: .*/versionedName: ReimsOS 24.04 LTS/' "${ROOTFS}/etc/calamares/branding/lubuntu/branding.desc" || true
-    sed -i 's/shortVersionedName: .*/shortVersionedName: ReimsOS/' "${ROOTFS}/etc/calamares/branding/lubuntu/branding.desc" || true
-    sed -i 's/bootloaderEntryName: .*/bootloaderEntryName: ReimsOS/' "${ROOTFS}/etc/calamares/branding/lubuntu/branding.desc" || true
+    sed -i 's/productName: .*/productName: Reims Desktop/' "${ROOTFS}/etc/calamares/branding/lubuntu/branding.desc" || true
+    sed -i 's/shortProductName: .*/shortProductName: Reims Desktop/' "${ROOTFS}/etc/calamares/branding/lubuntu/branding.desc" || true
+    sed -i 's/versionedName: .*/versionedName: Reims Desktop 24.04 LTS/' "${ROOTFS}/etc/calamares/branding/lubuntu/branding.desc" || true
+    sed -i 's/shortVersionedName: .*/shortVersionedName: Reims Desktop/' "${ROOTFS}/etc/calamares/branding/lubuntu/branding.desc" || true
+    sed -i 's/bootloaderEntryName: .*/bootloaderEntryName: Reims Desktop/' "${ROOTFS}/etc/calamares/branding/lubuntu/branding.desc" || true
 fi
 
-# Configura atalho oficial do instalador do ReimsOS (substituindo o lubuntu-calamares.desktop para evitar duplicatas)
+# Configura atalho oficial do instalador do Reims Desktop (substituindo o lubuntu-calamares.desktop para evitar duplicatas)
 mkdir -p "${ROOTFS}/usr/share/applications"
 cat << 'EOF' > "${ROOTFS}/usr/share/applications/lubuntu-calamares.desktop"
 [Desktop Entry]
 Type=Application
 Version=1.0
-Name=Install ReimsOS 24.04 LTS
-Name[pt]=Instalar o ReimsOS 24.04 LTS
-Name[pt_BR]=Instalar o ReimsOS 24.04 LTS
-GenericName=Install ReimsOS
-GenericName[pt]=Instalar o ReimsOS
-GenericName[pt_BR]=Instalar o ReimsOS
+Name=Install Reims Desktop 24.04 LTS
+Name[pt]=Instalar o Reims Desktop 24.04 LTS
+Name[pt_BR]=Instalar o Reims Desktop 24.04 LTS
+GenericName=Install Reims Desktop
+GenericName[pt]=Instalar o Reims Desktop
+GenericName[pt_BR]=Instalar o Reims Desktop
 Exec=sudo -E /usr/bin/calamares-launch-normal
-Comment=Install ReimsOS on your disk
-Comment[pt_BR]=Instalar o ReimsOS no seu disco
+Comment=Install Reims Desktop on your disk
+Comment[pt_BR]=Instalar o Reims Desktop no seu disco
 Icon=/usr/share/pixmaps/reims-logo.png
 Terminal=false
 StartupNotify=true
@@ -204,10 +204,10 @@ for SKEL_DIR in "${ROOTFS}/etc/skel" "${ROOTFS}/home/lubuntu" "${ROOTFS}/home/re
 done
 
 # Ajusta informações do disco (.disk/info)
-echo "ReimsOS 24.04 LTS - Release amd64" > "${STAGE_DIR}/iso/.disk/info"
+echo "Reims Desktop 24.04 LTS - Release amd64" > "${STAGE_DIR}/iso/.disk/info"
 
-# Injeta Ícones de Boot e Splash (Plymouth) do ReimsOS
-echo "==> Injetando temas de boot e Plymouth do ReimsOS..."
+# Injeta Ícones de Boot e Splash (Plymouth) do Reims Desktop
+echo "==> Injetando temas de boot e Plymouth do Reims Desktop..."
 mkdir -p "${ROOTFS}/usr/share/pixmaps"
 cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/pixmaps/reims-logo.png"
 
@@ -221,7 +221,7 @@ if [[ -f "${CUSTOM_DIR}/reims-logo.png" ]]; then
         cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/themes/spinner/bgrt-fallback.png" || true
     fi
 
-    # Atualiza tema lubuntu-logo removendo os 200 frames do logo do Lubuntu e aplicando a identidade do ReimsOS
+    # Atualiza tema lubuntu-logo removendo os 200 frames do logo do Lubuntu e aplicando a identidade do Reims Desktop
     if [[ -d "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo" ]]; then
         cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/lubuntu_logo.png"
         cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/watermark.png"
@@ -237,7 +237,7 @@ if [[ -f "${CUSTOM_DIR}/reims-logo.png" ]]; then
             fi
         fi
 
-        # Altera cores de fundo azul do Lubuntu para tema escuro do ReimsOS (#121418)
+        # Altera cores de fundo azul do Lubuntu para tema escuro do Reims Desktop (#121418)
         sed -i 's/0x0078c2/0x121418/g' "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/lubuntu-logo.plymouth" || true
         if [[ -f "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/bgrt/bgrt.plymouth" ]]; then
             sed -i 's/0x0078c2/0x121418/g' "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/bgrt/bgrt.plymouth" || true
@@ -258,12 +258,12 @@ if [[ -f "${CUSTOM_DIR}/reims-logo.png" ]]; then
     fi
 fi
 
-# Injeta Prompt de Boas-Vindas Customizado (Botões Live CD e Instalar ReimsOS)
+# Injeta Prompt de Boas-Vindas Customizado (Botões Live CD e Instalar Reims Desktop)
 echo "==> Configurando assistente de boas-vindas do Live CD (Live vs Instalar)..."
 cp -v "${CUSTOM_DIR}/reims-installer-prompt.py" "${ROOTFS}/usr/bin/reims-installer-prompt"
 chmod +x "${ROOTFS}/usr/bin/reims-installer-prompt"
 
-# Substitui o lubuntu-installer-prompt para garantir a chamada nativa do ReimsOS
+# Substitui o lubuntu-installer-prompt para garantir a chamada nativa do Reims Desktop
 if [[ -f "${ROOTFS}/usr/bin/lubuntu-installer-prompt" ]] || [[ -d "${ROOTFS}/usr/bin" ]]; then
     ln -sf /usr/bin/reims-installer-prompt "${ROOTFS}/usr/bin/lubuntu-installer-prompt"
 fi
@@ -292,12 +292,12 @@ if [[ -f "${ROOTFS}/usr/libexec/start-lubuntu-live-env" ]]; then
 fi
 
 # Customiza Menu de Boot do GRUB na ISO
-echo "==> Customizando entradas do GRUB da ISO para ReimsOS..."
+echo "==> Customizando entradas do GRUB da ISO para Reims Desktop..."
 for CFG in "${STAGE_DIR}/iso/boot/grub/grub.cfg" "${STAGE_DIR}/iso/boot/grub/loopback.cfg"; do
     if [[ -f "${CFG}" ]]; then
-        sed -i 's/Try or Install Lubuntu/Experimentar ou Instalar o ReimsOS/g' "${CFG}" || true
-        sed -i 's/Lubuntu (safe graphics)/ReimsOS (Modo Seguro \/ Safe Graphics)/g' "${CFG}" || true
-        sed -i 's/OEM install (for manufacturers)/Instalação OEM ReimsOS/g' "${CFG}" || true
+        sed -i 's/Try or Install Lubuntu/Experimentar ou Instalar o Reims Desktop/g' "${CFG}" || true
+        sed -i 's/Lubuntu (safe graphics)/Reims Desktop (Modo Seguro \/ Safe Graphics)/g' "${CFG}" || true
+        sed -i 's/OEM install (for manufacturers)/Instalação OEM Reims Desktop/g' "${CFG}" || true
     fi
 done
 
@@ -312,8 +312,8 @@ echo "==> Removendo pacotes desnecessarios..."
 grep -v '^#' /tmp/remove-packages.list | xargs apt-get purge -y || true
 apt-get autoremove -y
 
-# 2. Instala pacotes do ReimsOS
-echo "==> Atualizando repositórios e instalando pacotes do ReimsOS..."
+# 2. Instala pacotes do Reims Desktop
+echo "==> Atualizando repositórios e instalando pacotes do Reims Desktop..."
 apt-get update -y || true
 dpkg -i /tmp/reims-pkgs/*.deb || apt-get install -f -y --fix-missing
 
@@ -327,7 +327,7 @@ for DESKTOP_DIR in /etc/skel/Desktop /home/lubuntu/Desktop /home/reims/Desktop; 
 done
 
 # 4. Atualiza initramfs com os novos icones e splash do Plymouth
-echo "==> Atualizando initramfs com a identidade visual do ReimsOS..."
+echo "==> Atualizando initramfs com a identidade visual do Reims Desktop..."
 KERNEL_VER=$(ls /lib/modules 2>/dev/null | tail -n 1 || uname -r)
 rm -f /boot/initrd.img*
 update-initramfs -c -k "${KERNEL_VER}" || update-initramfs -u || true
@@ -377,7 +377,7 @@ mksquashfs "${STAGE_DIR}/squashfs" "${STAGE_DIR}/iso/casper/filesystem.squashfs"
 printf $(du -sx --block-size=1 "${STAGE_DIR}/squashfs" | cut -f1) > "${STAGE_DIR}/iso/casper/filesystem.size"
 
 # 5. Geração da Nova ISO
-echo "==> Gerando nova imagem ISO do ReimsOS..."
+echo "==> Gerando nova imagem ISO do Reims Desktop..."
 mkdir -p "$(dirname "${ISO_OUTPUT}")"
 xorriso -as mkisofs \
     -r -V "REIMS_OS" \

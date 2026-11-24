@@ -53,8 +53,8 @@ class TestIsoRemastering(unittest.TestCase):
         content = prompt_py.read_text(encoding="utf-8")
         self.assertIn("#!/usr/bin/env python3", content)
         self.assertIn("ReimsInstallerPromptWindow", content)
-        self.assertIn("Experimentar ReimsOS (Live CD)", content)
-        self.assertIn("Instalar o ReimsOS", content)
+        self.assertIn("Experimentar Reims Desktop (Live CD)", content)
+        self.assertIn("Instalar o Reims Desktop", content)
 
     def test_touchpad_config_exists(self):
         conf = self.custom_dir / "90-touchpad.conf"
@@ -81,12 +81,12 @@ class TestIsoRemastering(unittest.TestCase):
         self.assertIn('"show.qml"', content)
         self.assertIn("slideshowAPI:", content)
         self.assertIn("productName:", content)
-        self.assertIn("ReimsOS", content)
+        self.assertIn("Reims Desktop", content)
 
         script = self.scripts_dir / "remaster_iso.sh"
         script_content = script.read_text(encoding="utf-8")
         self.assertIn("lubuntu-calamares.desktop", script_content)
-        self.assertIn("Install ReimsOS", script_content)
+        self.assertIn("Install Reims Desktop", script_content)
         self.assertIn("rm -f \"${SKEL_DIR}/Desktop/install-reims.desktop\"", script_content)
         self.assertIn("pkgselect", script_content)
         self.assertIn('cp -v "${CONFIG_DIR}/calamares/settings.conf"', script_content)

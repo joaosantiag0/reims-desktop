@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name=Reims Desktop
+Name[pt_BR]=Reims Desktop
+Name[es_ES]=Reims Desktop
+Comment=macOS Virtual Machine Manager with Vulkan GPU Acceleration
+Comment[pt_BR]=Gerenciador de Máquinas Virtuais macOS com Aceleração Vulkan
+Comment[es_ES]=Gestor de Máquinas Virtuales macOS con Aceleración Vulkan
+Exec=/usr/bin/reims-desktop
+Icon=reims-desktop
+Terminal=false
+Type=Application
+Categories=System;Emulator;Utility;Qt;
+Keywords=macos;vm;qemu;vgpu;vulkan;virtualization;reims;desktop;
+StartupNotify=true

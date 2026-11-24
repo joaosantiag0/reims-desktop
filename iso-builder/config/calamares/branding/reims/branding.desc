@@ -1,4 +1,4 @@
-# ReimsOS Branding Description for Calamares
+# Reims Desktop Branding Description for Calamares
 ---
 componentName:  reims
 welcomeStyleCalamares: false
@@ -8,13 +8,13 @@ windowSize: 840px,580px
 windowPlacement: center
 
 strings:
-    productName:         ReimsOS
-    shortProductName:    ReimsOS
+    productName:         Reims Desktop
+    shortProductName:    Reims Desktop
     version:             24.04 LTS
     shortVersion:        24.04
-    versionedName:       ReimsOS 24.04 LTS "Noble Numbat"
-    shortVersionedName:  ReimsOS 24.04
-    bootloaderEntryName: ReimsOS
+    versionedName:       Reims Desktop 24.04 LTS
+    shortVersionedName:  Reims Desktop 24.04
+    bootloaderEntryName: Reims Desktop
     productUrl:          https://github.com/steelbrain/reims-vgpu
     supportUrl:          https://github.com/steelbrain/reims-vgpu/issues
     knownIssuesUrl:      https://github.com/steelbrain/reims-vgpu

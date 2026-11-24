@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# ReimsOS ISO Builder
-# Script automatizado para geração da imagem ISO do ReimsOS (Ubuntu 24.04 LTS)
+# Reims Desktop ISO Builder
+# Script automatizado para geração da imagem ISO do Reims Desktop (Ubuntu 24.04 LTS)
 # ==============================================================================
 set -euo pipefail
 
@@ -27,7 +27,7 @@ for arg in "$@"; do
 done
 
 echo "=================================================================="
-echo "          ReimsOS: Pipeline de Construção de Imagem ISO           "
+echo "          Reims Desktop: Pipeline de Construção de Imagem ISO           "
 echo "=================================================================="
 
 # 1. Validação de Arquivos de Configuração
@@ -43,7 +43,7 @@ if [[ ! -f "${CONFIG_DIR}/calamares/settings.conf" ]]; then
 fi
 
 # 2. Garante compilação dos pacotes Reims (.deb)
-echo "==> Verificando pacotes .deb do ReimsOS..."
+echo "==> Verificando pacotes .deb do Reims Desktop..."
 if [[ ! -f "${DIST_DIR}/reims-core_0.1.0_all.deb" ]] || [[ ! -f "${DIST_DIR}/reims-gui_0.1.0_all.deb" ]]; then
     echo "==> Compilando pacotes Debian..."
     "${REPO_ROOT}/packaging/scripts/build_all.sh"
@@ -101,7 +101,7 @@ apt-get update
 # Instala pacotes do repositório
 grep -v '^#' /tmp/packages.list | xargs apt-get install -y --no-install-recommends
 
-# Instala pacotes do ReimsOS
+# Instala pacotes do Reims Desktop
 dpkg -i /tmp/reims-debs/*.deb || apt-get install -f -y
 
 # Criação do usuário live padrão

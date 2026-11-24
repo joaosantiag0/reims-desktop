@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-# Entrypoint launcher para o Reims Control Center
-export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-
-# Executa reims_gui e redireciona logs para diagnóstico fácil
-if ! /usr/bin/python3 -m reims_gui.main "$@" >> /tmp/reims-gui.log 2>&1; then
-    EXIT_CODE=$?
-    echo "ERRO ao iniciar Reims Control Center (código ${EXIT_CODE}). Verifique /tmp/reims-gui.log" >&2
-    exit "${EXIT_CODE}"
+BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -x "${BIN_DIR}/reims-desktop" ]]; then
+    exec "${BIN_DIR}/reims-desktop" "$@"
+elif command -v reims-desktop &>/dev/null; then
+    exec reims-desktop "$@"
+else
+    echo "ERRO: reims-desktop não encontrado!" >&2
+    exit 1
 fi

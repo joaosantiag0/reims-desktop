@@ -54,18 +54,20 @@ if [[ "${UPSTREAM_BUILD}" == "true" ]]; then
     fi
 
     if [[ -f "${HOME}/.cargo/bin/reims-ctl" ]]; then
-        cp "${HOME}/.cargo/bin/reims-ctl" "${STAGE_DIR}/usr/bin/"
-        cp "${HOME}/.cargo/bin/reims-util" "${STAGE_DIR}/usr/bin/"
+        cp "${HOME}/.cargo/bin/reims-ctl" "${STAGE_DIR}/usr/bin/reims-desktop-ctl"
+        cp "${HOME}/.cargo/bin/reims-util" "${STAGE_DIR}/usr/bin/reims-desktop-util"
+        ln -sf reims-desktop-ctl "${STAGE_DIR}/usr/bin/reims-ctl"
+        ln -sf reims-desktop-util "${STAGE_DIR}/usr/bin/reims-util"
     fi
     if [[ -d "${HOME}/.local/share/reims-ctl/qemu/current/bin" ]]; then
         cp -r "${HOME}/.local/share/reims-ctl/qemu/current/bin/"* "${STAGE_DIR}/usr/lib/reims/"
     fi
 else
     echo "==> [MODO ESTÁVEL/SIMULADO] Empacotando binários do reims-vgpu..."
-    cat << 'EOF' > "${STAGE_DIR}/usr/bin/reims-ctl"
+    cat << 'EOF' > "${STAGE_DIR}/usr/bin/reims-desktop-ctl"
 #!/usr/bin/env bash
 set -euo pipefail
-echo "reims-ctl (ReimsOS build 0.1.0)"
+echo "reims-desktop-ctl (Reims Desktop build 0.1.0)"
 if [[ "${1:-}" == "doctor" ]]; then
     echo "KVM: ok (/dev/kvm)"
     echo "udmabuf: ok (/dev/udmabuf)"
@@ -79,11 +81,14 @@ elif [[ "${1:-}" == "list" && "${2:-}" == "--json" ]]; then
 fi
 EOF
 
-    cat << 'EOF' > "${STAGE_DIR}/usr/bin/reims-util"
+    cat << 'EOF' > "${STAGE_DIR}/usr/bin/reims-desktop-util"
 #!/usr/bin/env bash
 set -euo pipefail
-echo "reims-util (ReimsOS build 0.1.0)"
+echo "reims-desktop-util (Reims Desktop build 0.1.0)"
 EOF
+
+    ln -sf reims-desktop-ctl "${STAGE_DIR}/usr/bin/reims-ctl"
+    ln -sf reims-desktop-util "${STAGE_DIR}/usr/bin/reims-util"
 
     cat << 'EOF' > "${STAGE_DIR}/usr/lib/reims/qemu-system-x86_64"
 #!/usr/bin/env bash

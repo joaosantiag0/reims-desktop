@@ -22,7 +22,7 @@ class ReimsCtlClient:
     """Client wrapper for calling the `reims-ctl` CLI tool."""
 
     def __init__(self, binary_path: Optional[str] = None, mock: bool = False):
-        self.binary_path = binary_path or shutil.which("reims-ctl") or "/usr/bin/reims-ctl"
+        self.binary_path = binary_path or shutil.which("reims-desktop-ctl") or shutil.which("reims-ctl") or "/usr/bin/reims-desktop-ctl"
         self.mock = mock or not os.path.exists(self.binary_path)
 
         # In-memory state for mock mode

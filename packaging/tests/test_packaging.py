@@ -64,6 +64,7 @@ class TestDebianPackaging(unittest.TestCase):
                 names = tar.getnames()
                 self.assertTrue(any("reims.conf" in n for n in names))
                 self.assertTrue(any("99-reims.rules" in n for n in names))
+                self.assertTrue(any("usr/bin/reims-desktop-update" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-update" in n for n in names))
 
     def test_build_gui_package(self):
@@ -85,8 +86,9 @@ class TestDebianPackaging(unittest.TestCase):
             data_tar.write_bytes(members["data.tar.gz"])
             with tarfile.open(data_tar, "r:gz") as tar:
                 names = tar.getnames()
-                self.assertTrue(any("reims-gui.desktop" in n for n in names))
-                self.assertTrue(any("reims-gui.svg" in n for n in names))
+                self.assertTrue(any("reims-desktop.desktop" in n for n in names))
+                self.assertTrue(any("reims-desktop.svg" in n for n in names))
+                self.assertTrue(any("usr/bin/reims-desktop" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-gui" in n for n in names))
                 self.assertTrue(any("dist-packages/reims_gui" in n for n in names))
 
@@ -97,6 +99,17 @@ class TestDebianPackaging(unittest.TestCase):
         self.assertIn("reims-core_0.1.0_all.deb", res.stdout)
         self.assertIn("reims-gui_0.1.0_all.deb", res.stdout)
         self.assertIn("reims-vgpu_0.1.0_amd64.deb", res.stdout)
+
+        vgpu_deb = self.dist_dir / "reims-vgpu_0.1.0_amd64.deb"
+        self.assertTrue(vgpu_deb.exists())
+        members = self._extract_deb_members(vgpu_deb)
+        with tempfile.TemporaryDirectory() as tmp:
+            data_tar = Path(tmp) / "data.tar.gz"
+            data_tar.write_bytes(members["data.tar.gz"])
+            with tarfile.open(data_tar, "r:gz") as tar:
+                names = tar.getnames()
+                self.assertTrue(any("usr/bin/reims-desktop-ctl" in n for n in names))
+                self.assertTrue(any("usr/bin/reims-ctl" in n for n in names))
 
 
 if __name__ == "__main__":

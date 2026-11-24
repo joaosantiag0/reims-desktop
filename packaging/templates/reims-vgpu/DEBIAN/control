@@ -3,7 +3,7 @@ Version: 0.1.0
 Section: utils
 Priority: optional
 Architecture: amd64
-Maintainer: ReimsOS Team <dev@reims-os.org>
+Maintainer: Reims Desktop Team <dev@reims-desktop.org>
 Depends: reims-core (>= 0.1.0), libvulkan1, libglib2.0-0, libpixman-1-0, libslirp0
 Description: Accelerated macOS virtual GPU for QEMU and reims-ctl utility
  Contains the patched qemu-system-x86_64 build with metal2vulkan acceleration,

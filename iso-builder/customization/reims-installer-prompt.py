@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""ReimsOS Live CD & Installer Welcome Prompt.
+"""Reims Desktop Live CD & Installer Welcome Prompt.
 
 Substitui o lubuntu-installer-prompt padrao por uma interface moderna,
-com tema escuro do ReimsOS, suporte a i18n (pt_BR, en_US, es_ES) e opcoes claras
+com tema escuro do Reims Desktop, suporte a i18n (pt_BR, en_US, es_ES) e opcoes claras
 para experimentar o Live CD ou iniciar o instalador grafico Calamares.
 """
 from __future__ import annotations
@@ -38,74 +38,74 @@ logger = logging.getLogger("reims-installer-prompt")
 
 TRANSLATIONS: dict[str, dict[str, str]] = {
     "pt_BR": {
-        "title": "ReimsOS 24.04 LTS",
+        "title": "Reims Desktop 24.04 LTS",
         "subtitle": "Sistema Operacional Otimizado para Desempenho e Virtualização de GPU",
-        "heading": "Bem-vindo ao ReimsOS! O que você deseja fazer?",
+        "heading": "Bem-vindo ao Reims Desktop! O que você deseja fazer?",
         "lang_label": "Idioma:",
-        "card_live_title": "Experimentar ReimsOS (Live CD)",
+        "card_live_title": "Experimentar Reims Desktop (Live CD)",
         "card_live_badge": "Modo de Teste",
         "card_live_desc": (
-            "Inicie a sessão gráfica do ReimsOS diretamente na memória RAM.\n"
+            "Inicie a sessão gráfica do Reims Desktop diretamente na memória RAM.\n"
             "Nenhuma modificação será feita nos seus discos. Você poderá testar "
             "suas GPUs, redes Wi-Fi e utilizar o Reims Control Center."
         ),
-        "btn_live": "Experimentar ReimsOS (Live CD)",
-        "card_install_title": "Instalar o ReimsOS",
+        "btn_live": "Experimentar Reims Desktop (Live CD)",
+        "card_install_title": "Instalar o Reims Desktop",
         "card_install_badge": "Instalação no Disco",
         "card_install_desc": (
             "Abra o assistente gráfico de instalação (Calamares) para particionar seu "
-            "disco rígido/NVMe, configurar seu usuário e instalar o ReimsOS "
+            "disco rígido/NVMe, configurar seu usuário e instalar o Reims Desktop "
             "com aceleração de GPU e KVM completa."
         ),
-        "btn_install": "Instalar o ReimsOS",
+        "btn_install": "Instalar o Reims Desktop",
         "status_ready": "Selecione uma opção para continuar.",
         "status_running": "Iniciando assistente de instalação Calamares...",
     },
     "en_US": {
-        "title": "ReimsOS 24.04 LTS",
+        "title": "Reims Desktop 24.04 LTS",
         "subtitle": "Performance-Optimized OS with Native GPU Virtualization",
-        "heading": "Welcome to ReimsOS! What would you like to do?",
+        "heading": "Welcome to Reims Desktop! What would you like to do?",
         "lang_label": "Language:",
-        "card_live_title": "Try ReimsOS (Live CD)",
+        "card_live_title": "Try Reims Desktop (Live CD)",
         "card_live_badge": "Live Test Mode",
         "card_live_desc": (
-            "Launch the ReimsOS desktop session directly in RAM.\n"
+            "Launch the Reims Desktop desktop session directly in RAM.\n"
             "No changes will be made to your system disks. Explore the desktop, "
             "verify GPU and network hardware, and test Reims Control Center."
         ),
-        "btn_live": "Try ReimsOS (Live CD)",
-        "card_install_title": "Install ReimsOS",
+        "btn_live": "Try Reims Desktop (Live CD)",
+        "card_install_title": "Install Reims Desktop",
         "card_install_badge": "Full Installation",
         "card_install_desc": (
             "Launch the Calamares graphical installer to partition your "
-            "disk/NVMe, configure your user account, and install ReimsOS "
+            "disk/NVMe, configure your user account, and install Reims Desktop "
             "with full GPU and KVM acceleration."
         ),
-        "btn_install": "Install ReimsOS",
+        "btn_install": "Install Reims Desktop",
         "status_ready": "Select an option to proceed.",
         "status_running": "Starting Calamares installation wizard...",
     },
     "es_ES": {
-        "title": "ReimsOS 24.04 LTS",
+        "title": "Reims Desktop 24.04 LTS",
         "subtitle": "Sistema Operativo Optimizado para Rendimiento y Virtualización de GPU",
-        "heading": "¡Bienvenido a ReimsOS! ¿Qué desea hacer?",
+        "heading": "¡Bienvenido a Reims Desktop! ¿Qué desea hacer?",
         "lang_label": "Idioma:",
-        "card_live_title": "Probar ReimsOS (Live CD)",
+        "card_live_title": "Probar Reims Desktop (Live CD)",
         "card_live_badge": "Modo de Prueba",
         "card_live_desc": (
-            "Inicie la sesión de escritorio de ReimsOS directamente en la memoria RAM.\n"
+            "Inicie la sesión de escritorio de Reims Desktop directamente en la memoria RAM.\n"
             "No se realizará ningún cambio en sus discos. Explore el sistema, "
             "compruebe sus GPUs y pruebe el Reims Control Center."
         ),
-        "btn_live": "Probar ReimsOS (Live CD)",
-        "card_install_title": "Instalar ReimsOS",
+        "btn_live": "Probar Reims Desktop (Live CD)",
+        "card_install_title": "Instalar Reims Desktop",
         "card_install_badge": "Instalación en Disco",
         "card_install_desc": (
             "Abra el asistente gráfico de instalación (Calamares) para particionar su "
-            "disco/NVMe, configurar su cuenta de usuario e instalar ReimsOS "
+            "disco/NVMe, configurar su cuenta de usuario e instalar Reims Desktop "
             "con aceleración completa de GPU y KVM."
         ),
-        "btn_install": "Instalar ReimsOS",
+        "btn_install": "Instalar Reims Desktop",
         "status_ready": "Seleccione una opción para continuar.",
         "status_running": "Iniciando instalador Calamares...",
     },
@@ -253,7 +253,7 @@ def detect_locale() -> str:
 
 if QT_AVAILABLE:
     class ReimsInstallerPromptWindow(QtWidgets.QMainWindow):
-        """Janela principal do assistente de boas-vindas do ReimsOS."""
+        """Janela principal do assistente de boas-vindas do Reims Desktop."""
 
         def __init__(
             self,
@@ -267,7 +267,7 @@ if QT_AVAILABLE:
             self.on_install_action = on_install_action
             self.current_locale = detect_locale()
 
-            self.setWindowTitle("ReimsOS 24.04 LTS")
+            self.setWindowTitle("Reims Desktop 24.04 LTS")
             self.setMinimumSize(820, 520)
             self.resize(860, 540)
             self.setStyleSheet(DARK_STYLESHEET)
@@ -292,7 +292,7 @@ if QT_AVAILABLE:
 
             # Logo & Titles
             title_vbox = QtWidgets.QVBoxLayout()
-            self.lbl_title = QtWidgets.QLabel("ReimsOS 24.04 LTS")
+            self.lbl_title = QtWidgets.QLabel("Reims Desktop 24.04 LTS")
             self.lbl_title.setObjectName("titleLabel")
             self.lbl_subtitle = QtWidgets.QLabel()
             self.lbl_subtitle.setObjectName("subtitleLabel")
@@ -424,8 +424,8 @@ if QT_AVAILABLE:
             self.lbl_status.setText(t["status_ready"])
 
         def handle_live_clicked(self) -> None:
-            """Trata o clique em 'Experimentar ReimsOS'."""
-            logger.info("Usuario selecionou: Experimentar ReimsOS (Live CD)")
+            """Trata o clique em 'Experimentar Reims Desktop'."""
+            logger.info("Usuario selecionou: Experimentar Reims Desktop (Live CD)")
             if self.on_live_action:
                 self.on_live_action()
             else:
@@ -433,8 +433,8 @@ if QT_AVAILABLE:
                 sys.exit(0)
 
         def handle_install_clicked(self) -> None:
-            """Trata o clique em 'Instalar o ReimsOS'."""
-            logger.info("Usuario selecionou: Instalar o ReimsOS")
+            """Trata o clique em 'Instalar o Reims Desktop'."""
+            logger.info("Usuario selecionou: Instalar o Reims Desktop")
             t = TRANSLATIONS.get(self.current_locale, TRANSLATIONS["en_US"])
             self.lbl_status.setText(t["status_running"])
             self.btn_live.setEnabled(False)
@@ -465,14 +465,14 @@ if QT_AVAILABLE:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="ReimsOS Live Welcome Prompt")
+    parser = argparse.ArgumentParser(description="Reims Desktop Live Welcome Prompt")
     parser.add_argument("--mock", action="store_true", help="Executa em modo simulacao")
     parser.add_argument("--test-init", action="store_true", help="Apenas inicializa UI e fecha com 0")
     args = parser.parse_args()
 
     if not QT_AVAILABLE:
         logger.warning("Nenhum backend Qt (PySide6/PyQt5/PyQt6) disponivel.")
-        print("ReimsOS Live Welcome: Qt nao disponivel. Prosseguindo para Live Desktop...")
+        print("Reims Desktop Live Welcome: Qt nao disponivel. Prosseguindo para Live Desktop...")
         return 0
 
     app = QtWidgets.QApplication(sys.argv)

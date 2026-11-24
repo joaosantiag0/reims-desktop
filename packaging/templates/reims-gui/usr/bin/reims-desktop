@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Entrypoint launcher para o Reims Desktop
+export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+
+# Executa reims_gui e redireciona logs para diagnóstico fácil
+if ! /usr/bin/python3 -m reims_gui.main "$@" >> /tmp/reims-desktop.log 2>&1; then
+    EXIT_CODE=$?
+    echo "ERRO ao iniciar Reims Desktop (código ${EXIT_CODE}). Verifique /tmp/reims-desktop.log" >&2
+    exit "${EXIT_CODE}"
+fi

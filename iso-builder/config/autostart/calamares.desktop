@@ -1,12 +1,12 @@
 [Desktop Entry]
 Type=Application
 Version=1.0
-Name=Install ReimsOS
-Name[pt_BR]=Instalar o ReimsOS
-Name[es_ES]=Instalar ReimsOS
+Name=Install Reims Desktop
+Name[pt_BR]=Instalar o Reims Desktop
+Name[es_ES]=Instalar Reims Desktop
 GenericName=Live System Installer
-Comment=Install ReimsOS to disk with graphical Calamares installer
-Comment[pt_BR]=Instale o ReimsOS no seu disco através do instalador gráfico Calamares
+Comment=Install Reims Desktop to disk with graphical Calamares installer
+Comment[pt_BR]=Instale o Reims Desktop no seu disco através do instalador gráfico Calamares
 Exec=sudo -E calamares -d
 Icon=calamares
 Terminal=false
