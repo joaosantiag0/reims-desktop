@@ -90,10 +90,11 @@ EOF
     touch "${STAGE_DIR}/usr/lib/reims/libreims_vgpu.so"
 fi
 
-# Ajusta permissões
+# Ajusta permissões (chmod não deve seguir symlinks, ex. o QEMU do sistema)
 chmod 755 "${STAGE_DIR}/DEBIAN"
-chmod 755 "${STAGE_DIR}/usr/bin/"*
-chmod 755 "${STAGE_DIR}/usr/lib/reims/"*
+for f in "${STAGE_DIR}/usr/bin/"* "${STAGE_DIR}/usr/lib/reims/"*; do
+    [[ -L "${f}" ]] || chmod 755 "${f}"
+done
 
 # Gera o pacote Debian
 OUTPUT_DEB="${DIST_DIR}/reims-vgpu_0.1.0_amd64.deb"
