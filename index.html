@@ -19,7 +19,10 @@
   <div class="card">
     <h3>Quick Setup</h3>
     <p>Add this repository to your system:</p>
-    <pre>echo "deb [trusted=yes] https://joaosantiag0.github.io/reims-desktop noble main" | sudo tee /etc/apt/sources.list.d/reims.list
+    <pre>echo "deb [arch=amd64 signed-by=/usr/share/keyrings/reims-desktop-archive-keyring.gpg] https://joaosantiag0.github.io/reims-desktop noble main" | sudo tee /etc/apt/sources.list.d/reims.list
+# Install the signing key (shipped inside reims-core):
+sudo mkdir -p /usr/share/keyrings
+# (skip this step if reims-core is already installed - the keyring is already in place)
 sudo apt update
 sudo apt install reims-core reims-gui reims-vgpu</pre>
   </div>

@@ -1,0 +1,38 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Origin: Reims Desktop
+Label: Reims Desktop
+Suite: noble
+Codename: noble
+Version: 24.04
+Architectures: amd64 all
+Components: main
+Description: Official Reims Desktop APT Repository
+Date: Tue, 24 Nov 2026 21:25:11 UTC
+MD5Sum:
+ 82f1d7b3093534152ddf1315052fa9ba 1882 main/binary-amd64/Packages
+ 384a3d591e957a21ec7eba8b1ff90b90 912 main/binary-amd64/Packages.gz
+ 839e854ed567f65b5ffec23ef207f1c1 1255 main/binary-all/Packages
+ 81e3251a45d58b6d238e0be108725ead 696 main/binary-all/Packages.gz
+SHA256:
+ f7a2486058d30db6ef0005973da22c4c7f06094791b97a7f94116b7d42f61d9b 1882 main/binary-amd64/Packages
+ c4c8ef32a2e9603a76fc2777aed0b5adb80f7bec3fbd2241df59b61ca41a351c 912 main/binary-amd64/Packages.gz
+ 54dd24e05becbf835224e082ed7ffc78748c2d845320a898ef13a9fe4d187dea 1255 main/binary-all/Packages
+ ed7c37216b8a9bcad4735a1c86ee358676c8c1a66c5ef5e075f1d8ed80ad02ef 696 main/binary-all/Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEEPxAieEftYtUUlqJA3iA/ySEdmNUFAmsGALcACgkQ3iA/ySEd
+mNXG9w//bYPgO6kG6ZZhDgw03UpC4c+42J42Di+638NSVoprl3jAvkiat4NhplVQ
+YRiUIKKdaQ9TfZ6Ty85D/7T4VWiEv1S0ZpQwfillZKpwum9xcP3OIdzQgxfaHr3m
+Hl6klE4iIJYtvLxxc8IulqPeZblRW0UIltRTzTeW//ORq+1WBtQfDVFmB3XJlB8B
+wCIce5gHe3SNhLUjfxEb5M26eiF2Zd9OtIivDmD9ZW40oN95yUJAjqMxcIyrSkzd
+uHQCuPZnEPgP75bGcGSSCOvdQSvmdWG+xs/MtooYJCBdPhb96mvNg+x+Ys7Gppdy
+m3w6PfEyMa7H79RPJ5bdar+v44/SpCU92fuBvQta3rBp22uEuQFjmwiBg4mhhEfI
+TYSwjBPo8sI0LcB2Gi7naW1Wtp0bMhf5UBmtMNiERn75AVYaEeShNiAR7NTRkF6y
+ffoRjT5MQ5QLjrqMibwoj1XbLTll81iHTGujaIEYmu06L8XYF/ZzMvIgTtJZzxep
+MIHt75d+TQ5DxPCa/NiDwcDl32jDpmpj3u3RXT6BjvRwOkJvKzp882MMS+HgExfO
+fx7WWJa7E4nG4mRpDmDfsedK4s9FJH+ig0J66s942Bt9Diq9bHLng2ywHtErYqd/
+AxgPU0mb8m3i20NFEaLN0wN60+BtNyBNkk5TlKqJ0CsNuYQ4kUk=
+=p7VF
+-----END PGP SIGNATURE-----
