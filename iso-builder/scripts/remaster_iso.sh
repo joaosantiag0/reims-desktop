@@ -135,9 +135,31 @@ mkdir -p "${ROOTFS}/usr/share/backgrounds"
 cp "${CUSTOM_DIR}/wallpaper.svg" "${ROOTFS}/usr/share/backgrounds/reims-wallpaper.svg"
 if [[ -f "${CUSTOM_DIR}/reims-wallpaper.png" ]]; then
     cp "${CUSTOM_DIR}/reims-wallpaper.png" "${ROOTFS}/usr/share/backgrounds/reims-wallpaper.png"
+    # Sobrescreve diretamente TODOS os wallpapers do Lubuntu/Ubuntu para que NENHUMA tela mostre o antigo
+    if [[ -d "${ROOTFS}/usr/share/lubuntu/wallpapers" ]]; then
+        for wp in "${ROOTFS}/usr/share/lubuntu/wallpapers"/*; do
+            if [[ -f "${wp}" ]]; then
+                cp -f "${CUSTOM_DIR}/reims-wallpaper.png" "${wp}"
+            fi
+        done
+    fi
 fi
 
-# Injeta Configurações do LXQt (Dark Theme e Wallpaper)
+# Injeta Configurações do LXQt (Dark Theme e Wallpaper) em todos os caminhos XDG e Skel
+for CONFIG_BASE in \
+    "${ROOTFS}/etc/xdg/xdg-Lubuntu" \
+    "${ROOTFS}/etc/xdg" \
+    "${ROOTFS}/usr/share" \
+    "${ROOTFS}/etc/skel/.config" \
+    "${ROOTFS}/home/lubuntu/.config" \
+    "${ROOTFS}/home/reims/.config"; do
+    if [[ -d "${CONFIG_BASE}" ]]; then
+        mkdir -p "${CONFIG_BASE}/pcmanfm-qt/lxqt" "${CONFIG_BASE}/lxqt"
+        cp "${CUSTOM_DIR}/pcmanfm-qt-desktop.conf" "${CONFIG_BASE}/pcmanfm-qt/lxqt/settings.conf"
+        cp "${CUSTOM_DIR}/lxqt.conf" "${CONFIG_BASE}/lxqt/lxqt.conf"
+    fi
+done
+
 for SKEL_DIR in "${ROOTFS}/etc/skel" "${ROOTFS}/home/lubuntu" "${ROOTFS}/home/reims"; do
     if [[ -d "${SKEL_DIR}" ]]; then
         mkdir -p "${SKEL_DIR}/.config/pcmanfm-qt/lxqt" "${SKEL_DIR}/.config/lxqt" "${SKEL_DIR}/Desktop"
@@ -145,6 +167,17 @@ for SKEL_DIR in "${ROOTFS}/etc/skel" "${ROOTFS}/home/lubuntu" "${ROOTFS}/home/re
         cp "${CUSTOM_DIR}/lxqt.conf" "${SKEL_DIR}/.config/lxqt/lxqt.conf"
         # Limpa atalhos antigos duplicados
         rm -f "${SKEL_DIR}/Desktop/install-reims.desktop"
+    fi
+done
+
+# Configura ícone do Reims Desktop no Menu Iniciar do painel LXQt
+for PANEL_CONF in \
+    "${ROOTFS}/etc/xdg/xdg-Lubuntu/lxqt/panel.conf" \
+    "${ROOTFS}/etc/xdg/lxqt/panel.conf" \
+    "${ROOTFS}/etc/skel/.config/lxqt/panel.conf" \
+    "${ROOTFS}/home/lubuntu/.config/lxqt/panel.conf"; do
+    if [[ -f "${PANEL_CONF}" ]]; then
+        sed -i '/^\[mainmenu\]/a icon=/usr/share/pixmaps/reims-logo.png' "${PANEL_CONF}"
     fi
 done
 
@@ -231,13 +264,17 @@ if [[ -f "${CUSTOM_DIR}/reims-logo.png" ]]; then
         if [[ -d "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner" ]]; then
             cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/watermark.png"
             cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/bgrt-fallback.png"
-            # Substitui animação giratória do logo do Lubuntu pelo spinner neutro/limpo
-            if [[ -d "${ROOTFS}/usr/share/plymouth/themes/spinner" ]]; then
-                rm -f "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/animation-"*
-                rm -f "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/throbber-"*
-                cp "${ROOTFS}/usr/share/plymouth/themes/spinner/animation-"* "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/" || true
-                cp "${ROOTFS}/usr/share/plymouth/themes/spinner/throbber-"* "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/" 2>/dev/null || true
-            fi
+            # Substitui todos os frames de animação do logo do Lubuntu pelo logo do Reims Desktop
+            for anim in "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/animation-"*.png; do
+                if [[ -f "${anim}" ]]; then
+                    cp -f "${CUSTOM_DIR}/reims-logo.png" "${anim}"
+                fi
+            done
+            for throb in "${ROOTFS}/usr/share/plymouth/themes/lubuntu-logo/spinner/throbber-"*.png; do
+                if [[ -f "${throb}" ]]; then
+                    cp -f "${CUSTOM_DIR}/reims-logo.png" "${throb}"
+                fi
+            done
         fi
 
         # Altera cores de fundo azul do Lubuntu para tema escuro do Reims Desktop (#121418)
