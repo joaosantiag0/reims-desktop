@@ -1,0 +1,92 @@
+# ==============================================================================
+# Reims Desktop Official GRUB Theme
+# Dark Glassmorphic Modern Boot Menu
+# ==============================================================================
+
+# General settings
+title-text: ""
+desktop-image: "background.png"
+desktop-image-scale-method: "crop"
+desktop-color: "#0b0f19"
+
+# 1. Centered Reims Logo
++ image {
+    left = 50%-70
+    top = 100
+    width = 140
+    height = 140
+    file = "logo.png"
+}
+
+# 2. Distribution Title Label
++ label {
+    left = 0
+    top = 250
+    width = 100%
+    align = "center"
+    text = "Reims Desktop"
+    color = "#38bdf8"
+    font = "Unifont Regular 16"
+}
+
+# 3. Subtitle / Version Info
++ label {
+    left = 0
+    top = 280
+    width = 100%
+    align = "center"
+    text = "macOS Virtualization Environment via Vulkan"
+    color = "#64748b"
+    font = "Unifont Regular 14"
+}
+
+# 4. Interactive Boot Menu
++ boot_menu {
+    left = 50%-340
+    top = 340
+    width = 680
+    height = 40%
+    item_color = "#94a3b8"
+    selected_item_color = "#ffffff"
+    item_height = 42
+    item_padding = 10
+    item_spacing = 8
+    selected_item_pixmap_style = "select_*.png"
+    icon_width = 24
+    icon_height = 24
+}
+
+# 5. Countdown Notification
++ label {
+    left = 0
+    top = 84%
+    width = 100%
+    align = "center"
+    id = "__timeout__"
+    text = "Iniciando em %d segundos..."
+    color = "#94a3b8"
+    font = "Unifont Regular 14"
+}
+
+# 6. Progress Bar
++ progress_bar {
+    id = "__timeout__"
+    left = 50%-240
+    top = 88%
+    width = 480
+    height = 6
+    fg_color = "#2563eb"
+    bg_color = "#1e293b"
+    border_color = "#334155"
+}
+
+# 7. Navigation Help Hotkeys
++ label {
+    left = 0
+    top = 93%
+    width = 100%
+    align = "center"
+    text = "Use as teclas ↑ e ↓ para selecionar  •  Pressione Enter para iniciar  •  'e' para editar opções"
+    color = "#475569"
+    font = "Unifont Regular 12"
+}

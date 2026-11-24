@@ -102,6 +102,48 @@ class TestIsoRemastering(unittest.TestCase):
             f"remaster_iso.sh --dry-run failed:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}",
         )
         self.assertIn("Script de remasterização testado com 100% de sucesso!", res.stdout)
+        self.assertIn("✓ Tema do seletor de boot GRUB do Reims Desktop validado.", res.stdout)
+
+    def test_grub_theme_files_exist_and_valid(self):
+        grub_dir = self.custom_dir / "grub"
+        self.assertTrue(grub_dir.is_dir(), "grub directory not found")
+
+        theme_txt = grub_dir / "theme.txt"
+        self.assertTrue(theme_txt.exists(), "theme.txt not found")
+        content = theme_txt.read_text(encoding="utf-8")
+        self.assertIn('desktop-image: "background.png"', content)
+        self.assertIn("Reims Desktop", content)
+        self.assertIn("+ boot_menu", content)
+        self.assertIn('selected_item_pixmap_style = "select_*.png"', content)
+
+        cfg = grub_dir / "50_reims_theme.cfg"
+        self.assertTrue(cfg.exists(), "50_reims_theme.cfg not found")
+        cfg_content = cfg.read_text(encoding="utf-8")
+        self.assertIn('GRUB_DISTRIBUTOR="Reims Desktop"', cfg_content)
+        self.assertIn('GRUB_THEME="/usr/share/grub/themes/reims/theme.txt"', cfg_content)
+
+        bg = grub_dir / "background.png"
+        self.assertTrue(bg.exists(), "background.png not found")
+        self.assertGreater(bg.stat().st_size, 50000, "background.png is too small")
+
+        logo = grub_dir / "logo.png"
+        self.assertTrue(logo.exists(), "logo.png not found")
+        self.assertGreater(logo.stat().st_size, 1000, "logo.png is too small")
+
+        # Verifica todos os 9 arquivos do 9-slice pixmap
+        slice_names = ["select_c", "select_e", "select_n", "select_ne", "select_nw", "select_s", "select_se", "select_sw", "select_w"]
+        for sname in slice_names:
+            sfile = grub_dir / f"{sname}.png"
+            self.assertTrue(sfile.exists(), f"9-slice component {sname}.png not found")
+            self.assertGreater(sfile.stat().st_size, 0)
+
+    def test_remaster_script_contains_grub_injection(self):
+        script = self.scripts_dir / "remaster_iso.sh"
+        content = script.read_text(encoding="utf-8")
+        self.assertIn("themes/reims", content)
+        self.assertIn("50_reims_theme.cfg", content)
+        self.assertIn("update-grub", content)
+        self.assertIn("Experimentar ou Instalar o Reims Desktop", content)
 
 
 if __name__ == "__main__":

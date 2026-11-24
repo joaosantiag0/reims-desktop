@@ -63,11 +63,22 @@ if [[ ! -f "${CUSTOM_DIR}/remove-packages.list" ]]; then
     exit 1
 fi
 
+if [[ ! -f "${CUSTOM_DIR}/grub/theme.txt" ]]; then
+    echo "ERRO: Tema do GRUB ${CUSTOM_DIR}/grub/theme.txt não encontrado!" >&2
+    exit 1
+fi
+
+if [[ ! -f "${CUSTOM_DIR}/grub/background.png" ]]; then
+    echo "ERRO: Background do GRUB ${CUSTOM_DIR}/grub/background.png não encontrado!" >&2
+    exit 1
+fi
+
 if [[ "${DRY_RUN}" == "true" ]]; then
     echo ""
     echo "==> [MODO SIMULAÇÃO / DRY-RUN ATIVO]"
     echo "✓ Wallpaper do Reims Desktop validado."
     echo "✓ Logo e ícones de boot do Reims Desktop validados."
+    echo "✓ Tema do seletor de boot GRUB do Reims Desktop validado."
     echo "✓ Suporte e configuração de touchpad (tap-to-click e gestures) validados."
     echo "✓ Prompt de boas-vindas do Live CD (Live vs Instalar) validado."
     echo "✓ Lista de pacotes bloatware a remover ($(grep -vc '^#' "${CUSTOM_DIR}/remove-packages.list" | tr -d ' ') pacotes)."
@@ -143,6 +154,35 @@ if [[ -f "${CUSTOM_DIR}/reims-wallpaper.png" ]]; then
                 cp -f "${CUSTOM_DIR}/reims-wallpaper.png" "${wp}"
             fi
         done
+    fi
+fi
+
+# Injeta Tema do GRUB do Reims Desktop no RootFS
+echo "==> Injetando tema do GRUB do Reims Desktop no RootFS..."
+mkdir -p "${ROOTFS}/usr/share/grub/themes/reims" "${ROOTFS}/boot/grub/themes/reims"
+cp -rf "${CUSTOM_DIR}/grub/"* "${ROOTFS}/usr/share/grub/themes/reims/"
+cp -rf "${CUSTOM_DIR}/grub/"* "${ROOTFS}/boot/grub/themes/reims/"
+
+# Sobrescreve também qualquer tema lubuntu existente no rootfs
+if [[ -d "${ROOTFS}/usr/share/grub/themes/lubuntu-grub-theme" ]]; then
+    cp -rf "${CUSTOM_DIR}/grub/"* "${ROOTFS}/usr/share/grub/themes/lubuntu-grub-theme/"
+fi
+if [[ -d "${ROOTFS}/boot/grub/themes/lubuntu-grub-theme" ]]; then
+    cp -rf "${CUSTOM_DIR}/grub/"* "${ROOTFS}/boot/grub/themes/lubuntu-grub-theme/"
+fi
+
+# Configura defaults do GRUB para usar o tema do Reims
+mkdir -p "${ROOTFS}/etc/default/grub.d"
+cp -f "${CUSTOM_DIR}/grub/50_reims_theme.cfg" "${ROOTFS}/etc/default/grub.d/50_reims_theme.cfg"
+if [[ -f "${ROOTFS}/etc/default/grub.d/lubuntu-grub-theme.cfg" ]]; then
+    cp -f "${CUSTOM_DIR}/grub/50_reims_theme.cfg" "${ROOTFS}/etc/default/grub.d/lubuntu-grub-theme.cfg"
+fi
+if [[ -f "${ROOTFS}/etc/default/grub" ]]; then
+    sed -i 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR="Reims Desktop"/' "${ROOTFS}/etc/default/grub" || true
+    if grep -q "^GRUB_THEME=" "${ROOTFS}/etc/default/grub"; then
+        sed -i 's|^GRUB_THEME=.*|GRUB_THEME="/usr/share/grub/themes/reims/theme.txt"|' "${ROOTFS}/etc/default/grub" || true
+    else
+        echo 'GRUB_THEME="/usr/share/grub/themes/reims/theme.txt"' >> "${ROOTFS}/etc/default/grub"
     fi
 fi
 
@@ -338,13 +378,33 @@ if [[ -f "${ROOTFS}/usr/libexec/start-lubuntu-live-env" ]]; then
     fi
 fi
 
-# Customiza Menu de Boot do GRUB na ISO
-echo "==> Customizando entradas do GRUB da ISO para Reims Desktop..."
+# Customiza Menu de Boot e Tema do GRUB na ISO
+echo "==> Customizando entradas e tema do GRUB da ISO para Reims Desktop..."
+mkdir -p "${STAGE_DIR}/iso/boot/grub/themes/reims"
+cp -rf "${CUSTOM_DIR}/grub/"* "${STAGE_DIR}/iso/boot/grub/themes/reims/"
+
+# Sobrescreve se existir lubuntu-grub-theme na ISO
+if [[ -d "${STAGE_DIR}/iso/boot/grub/themes/lubuntu-grub-theme" ]]; then
+    cp -rf "${CUSTOM_DIR}/grub/"* "${STAGE_DIR}/iso/boot/grub/themes/lubuntu-grub-theme/"
+fi
+
+# Copia wallpaper/splash para a pasta do grub da ISO
+cp -f "${CUSTOM_DIR}/grub/background.png" "${STAGE_DIR}/iso/boot/grub/splash.png" 2>/dev/null || true
+cp -f "${CUSTOM_DIR}/grub/background.png" "${STAGE_DIR}/iso/boot/grub/background.png" 2>/dev/null || true
+
 for CFG in "${STAGE_DIR}/iso/boot/grub/grub.cfg" "${STAGE_DIR}/iso/boot/grub/loopback.cfg"; do
     if [[ -f "${CFG}" ]]; then
         sed -i 's/Try or Install Lubuntu/Experimentar ou Instalar o Reims Desktop/g' "${CFG}" || true
         sed -i 's/Lubuntu (safe graphics)/Reims Desktop (Modo Seguro \/ Safe Graphics)/g' "${CFG}" || true
         sed -i 's/OEM install (for manufacturers)/Instalação OEM Reims Desktop/g' "${CFG}" || true
+        sed -i 's/Lubuntu/Reims Desktop/g' "${CFG}" || true
+        sed -i 's|/boot/grub/themes/lubuntu-grub-theme/theme.txt|/boot/grub/themes/reims/theme.txt|g' "${CFG}" || true
+        sed -i 's|/usr/share/grub/themes/lubuntu-grub-theme/theme.txt|/boot/grub/themes/reims/theme.txt|g' "${CFG}" || true
+
+        # Se ainda não tiver set theme configurado no grub.cfg da ISO, injeta logo no início
+        if ! grep -q "themes/reims/theme.txt" "${CFG}"; then
+            sed -i '1i\set theme=/boot/grub/themes/reims/theme.txt\ninsmod png\ninsmod gfxterm\ninsmod gfxmenu\nset gfxmode=auto\nterminal_output gfxterm' "${CFG}" || true
+        fi
     fi
 done
 
@@ -388,7 +448,11 @@ KERNEL_VER=$(ls /lib/modules 2>/dev/null | tail -n 1 || uname -r)
 rm -f /boot/initrd.img*
 update-initramfs -c -k "${KERNEL_VER}" || update-initramfs -u || true
 
-# 6. Limpeza de cache
+# 6. Atualiza configurações do GRUB no chroot
+echo "==> Atualizando configurações do GRUB no chroot..."
+command -v update-grub &>/dev/null && update-grub || true
+
+# 7. Limpeza de cache
 apt-get clean
 rm -rf /tmp/*
 EOF

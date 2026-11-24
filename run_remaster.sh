@@ -34,11 +34,35 @@ fi
 echo "==> Atualizando /mnt/installer/reims-os.iso com a nova imagem..."
 cp -f "${OUTPUT_ISO}" /mnt/installer/reims-os.iso
 
-echo "==> Atualizando vmlinuz e initrd na particao /dev/sda1..."
+echo "==> Atualizando vmlinuz, initrd e seletor de boot do GRUB na particao /dev/sda1..."
 mkdir -p /tmp/remaster_iso_mnt
 mount -o loop,ro /mnt/installer/reims-os.iso /tmp/remaster_iso_mnt
 cp -vf /tmp/remaster_iso_mnt/casper/vmlinuz /mnt/installer/casper/vmlinuz
 cp -vf /tmp/remaster_iso_mnt/casper/initrd /mnt/installer/casper/initrd
+
+# Atualiza tema e menu do GRUB diretamente na particao do instalador (/dev/sda1)
+mkdir -p /mnt/installer/boot/grub/themes/reims
+cp -rf "${SCRIPT_DIR}/iso-builder/customization/grub/"* /mnt/installer/boot/grub/themes/reims/ 2>/dev/null || true
+if [[ -d "/mnt/installer/boot/grub/themes/lubuntu-grub-theme" ]]; then
+    cp -rf "${SCRIPT_DIR}/iso-builder/customization/grub/"* /mnt/installer/boot/grub/themes/lubuntu-grub-theme/ 2>/dev/null || true
+fi
+cp -vf "${SCRIPT_DIR}/iso-builder/customization/grub/background.png" /mnt/installer/boot/grub/splash.png 2>/dev/null || true
+cp -vf "${SCRIPT_DIR}/iso-builder/customization/grub/background.png" /mnt/installer/boot/grub/background.png 2>/dev/null || true
+
+for CFG in /mnt/installer/boot/grub/grub.cfg /mnt/installer/boot/grub/loopback.cfg; do
+    if [[ -f "${CFG}" ]]; then
+        sed -i 's/Try or Install Lubuntu/Experimentar ou Instalar o Reims Desktop/g' "${CFG}" || true
+        sed -i 's/Lubuntu (safe graphics)/Reims Desktop (Modo Seguro \/ Safe Graphics)/g' "${CFG}" || true
+        sed -i 's/OEM install (for manufacturers)/Instalação OEM Reims Desktop/g' "${CFG}" || true
+        sed -i 's/Lubuntu/Reims Desktop/g' "${CFG}" || true
+        sed -i 's|/boot/grub/themes/lubuntu-grub-theme/theme.txt|/boot/grub/themes/reims/theme.txt|g' "${CFG}" || true
+        sed -i 's|/usr/share/grub/themes/lubuntu-grub-theme/theme.txt|/boot/grub/themes/reims/theme.txt|g' "${CFG}" || true
+        if ! grep -q "themes/reims/theme.txt" "${CFG}"; then
+            sed -i '1i\set theme=/boot/grub/themes/reims/theme.txt\ninsmod png\ninsmod gfxterm\ninsmod gfxmenu\nset gfxmode=auto\nterminal_output gfxterm' "${CFG}" || true
+        fi
+    fi
+done
+
 umount /tmp/remaster_iso_mnt
 rmdir /tmp/remaster_iso_mnt
 
