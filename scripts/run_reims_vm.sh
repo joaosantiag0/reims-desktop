@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# ReimsOS VM Test Runner (QEMU)
-# Executa a imagem ISO do ReimsOS em uma máquina virtual para teste local
+# Reims Desktop VM Test Runner (QEMU)
+# Runs the Reims Desktop ISO image in a virtual machine for local testing
 # ==============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-ISO_PATH="${1:-"${REPO_ROOT}/dist/iso/reims-os-24.04-amd64.iso"}"
+ISO_PATH="${1:-"${REPO_ROOT}/dist/iso/reims-desktop-24.04-amd64.iso"}"
 RAM_MB="4096"
 CPUS="4"
 DISK_IMAGE="${REPO_ROOT}/build/test-disk.qcow2"
@@ -23,7 +23,7 @@ for arg in "$@"; do
 done
 
 echo "=================================================================="
-echo "          ReimsOS: Inicialização de Teste em QEMU                 "
+echo "        Reims Desktop: QEMU Virtual Machine Test Launcher        "
 echo "=================================================================="
 
 # Detecta acelerador de virtualização

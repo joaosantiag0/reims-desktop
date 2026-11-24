@@ -1,4 +1,4 @@
-name: ReimsOS CI
+name: Reims Desktop CI
 
 on:
   push:

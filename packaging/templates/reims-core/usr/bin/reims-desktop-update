@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Utilitário de linha de comando para atualização do ReimsOS via GitHub Releases e Git.
+"""Command-line utility for Reims Desktop system updates via GitHub Releases and Git.
 
-Uso:
-  reims-update             Verifica e instala atualizações disponíveis
-  reims-update --check     Apenas verifica se há novas versões
-  reims-update --git       Atualiza diretamente a partir da branch principal do Git
-  reims-update --yes       Instalação sem confirmação interativa
-  reims-update --dry-run   Simula a atualização sem alterar o sistema
+Usage:
+  reims-desktop-update             Check and install available updates
+  reims-desktop-update --check     Only check if new versions are available
+  reims-desktop-update --git       Update directly from Git main branch
+  reims-desktop-update --yes       Apply updates without interactive confirmation
+  reims-desktop-update --dry-run   Simulate update without modifying the system
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ import os
 import sys
 from pathlib import Path
 
-# Adiciona caminhos padrão onde reims_gui ou reims_core podem estar instalados
+# Add standard search paths for reims_gui or reims_core modules
 for p in [
     "/usr/lib/reims-gui",
     "/usr/share/reims-gui",
@@ -27,50 +27,49 @@ for p in [
 try:
     from reims_gui.core.updater import SystemUpdater, ReleaseInfo
 except ImportError:
-    # Se reims_gui não estiver disponível, define uma versão simplificada de emergência
-    print("Aviso: Módulo reims_gui.core.updater não encontrado, usando mecanismo básico.", file=sys.stderr)
+    print("Warning: Module reims_gui.core.updater not found.", file=sys.stderr)
     raise
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Utilitário de Atualização do ReimsOS (GitHub Releases & Git)"
+        description="Reims Desktop System Updater (GitHub Releases & Git)"
     )
     parser.add_argument(
         "-c", "--check",
         action="store_true",
-        help="Apenas verifica se há atualizações disponíveis e sai com status 0 (atualização) ou 1 (atualizado)",
+        help="Check for updates and exit with status 0 (update available) or 1 (up to date)",
     )
     parser.add_argument(
         "-y", "--yes",
         action="store_true",
-        help="Aplica a atualização automaticamente sem solicitar confirmação",
+        help="Apply update automatically without asking for confirmation",
     )
     parser.add_argument(
         "--git",
         action="store_true",
-        help="Atualiza diretamente a partir do repositório Git público",
+        help="Update directly from public Git repository main branch",
     )
     parser.add_argument(
         "--repo",
         type=str,
         default=None,
-        help="Sobrescreve o repositório GitHub (padrão: steelbrain/reims-os ou $REIMS_GITHUB_REPO)",
+        help="Override GitHub repository (default: joaosantiag0/reims-desktop or $REIMS_GITHUB_REPO)",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Simula o download e instalação sem aplicar modificações",
+        help="Simulate download and installation without modifying the system",
     )
     parser.add_argument(
         "--mock",
         action="store_true",
-        help="Modo mock/teste sem chamadas de rede",
+        help="Mock/testing mode without network calls",
     )
     parser.add_argument(
         "-v", "--version",
         action="store_true",
-        help="Exibe a versão atual instalada do ReimsOS",
+        help="Display currently installed Reims Desktop version",
     )
 
     args = parser.parse_args()
@@ -81,50 +80,50 @@ def main() -> int:
     updater = SystemUpdater(repo=args.repo)
 
     if args.version:
-        print(f"Reims Desktop versão instalada: {updater.current_version}")
+        print(f"Reims Desktop installed version: {updater.current_version}")
         return 0
 
     print("==================================================")
     print("            Reims Desktop System Updater          ")
     print("==================================================")
-    print(f"Versão Atual: {updater.current_version}")
-    print(f"Repositório:  https://github.com/{updater.repo}")
+    print(f"Current Version: {updater.current_version}")
+    print(f"Repository:      https://github.com/{updater.repo}")
     print("--------------------------------------------------")
 
-    # Modo Atualização via Git
+    # Git Update Mode
     if args.git:
-        print("==> Modo Git ativado: Puxando da branch principal...")
+        print("==> Git mode enabled: Pulling from main branch...")
         ok, msg = updater.update_from_git(dry_run=args.dry_run)
         if ok:
             print(f"✓ {msg}")
             return 0
         else:
-            print(f"✗ Erro: {msg}", file=sys.stderr)
+            print(f"✗ Error: {msg}", file=sys.stderr)
             return 1
 
-    # Modo Verificação / Releases
-    print("==> Verificando atualizações no GitHub Releases...")
+    # Release Check Mode
+    print("==> Checking for updates on GitHub Releases...")
     release = updater.check_for_updates()
 
     if not release:
-        print("✓ O seu Reims Desktop já está na versão mais recente!")
+        print("✓ Your Reims Desktop is already on the latest version!")
         return 1 if args.check else 0
 
-    print(f"\n🎉 Nova versão encontrada: {release.tag_name} (atual: {updater.current_version})")
-    print(f"Título: {release.name}")
-    print(f"Data:   {release.published_at}")
+    print(f"\n🎉 New version found: {release.tag_name} (current: {updater.current_version})")
+    print(f"Title: {release.name}")
+    print(f"Date:  {release.published_at}")
     if release.body:
-        print("\n--- Notas da Versão ---")
+        print("\n--- Release Notes ---")
         print(release.body.strip())
-        print("-----------------------")
+        print("---------------------")
 
     deb_assets = release.deb_assets
     if not deb_assets:
-        print("\nAviso: Esta release não possui pacotes .deb para atualização automática.")
-        print(f"Mais detalhes em: {release.html_url}")
+        print("\nWarning: This release does not include .deb packages for automatic update.")
+        print(f"More details at: {release.html_url}")
         return 0
 
-    print(f"\nPacotes disponíveis para atualização ({len(deb_assets)}):")
+    print(f"\nAvailable update packages ({len(deb_assets)}):")
     for a in deb_assets:
         size_kb = a.size / 1024 if a.size else 0
         print(f"  • {a.name} ({size_kb:.1f} KB)")
@@ -134,16 +133,16 @@ def main() -> int:
 
     if not args.yes:
         try:
-            resposta = input("\nDeseja baixar e aplicar esta atualização agora? [S/n]: ").strip().lower()
-            if resposta and resposta not in ("s", "sim", "y", "yes"):
-                print("Operação cancelada pelo usuário.")
+            answer = input("\nDo you want to download and apply this update now? [Y/n]: ").strip().lower()
+            if answer and answer not in ("y", "yes", "s", "sim"):
+                print("Operation cancelled by user.")
                 return 0
         except (KeyboardInterrupt, EOFError):
-            print("\nOperação cancelada.")
+            print("\nOperation cancelled.")
             return 1
 
     download_dir = Path("/tmp/reims-update")
-    print(f"\n==> Baixando pacotes em {download_dir}...")
+    print(f"\n==> Downloading packages to {download_dir}...")
     
     def on_progress(downloaded: int, total: int, filename: str):
         pct = (downloaded / total * 100) if total else 0
@@ -152,19 +151,19 @@ def main() -> int:
 
     try:
         debs = updater.download_assets(release, download_dir, progress_callback=on_progress)
-        print("\n✓ Download concluído com sucesso!")
+        print("\n✓ Download completed successfully!")
     except Exception as e:
-        print(f"\n✗ Erro durante o download: {e}", file=sys.stderr)
+        print(f"\n✗ Error during download: {e}", file=sys.stderr)
         return 1
 
-    print("\n==> Instalando atualização no sistema...")
+    print("\n==> Installing update on system...")
     ok, msg = updater.install_debs(debs, dry_run=args.dry_run)
     if ok:
         print(f"✓ {msg}")
-        print("\n🎉 Atualização do Reims Desktop concluída com sucesso!")
+        print("\n🎉 Reims Desktop update completed successfully!")
         return 0
     else:
-        print(f"✗ Erro durante a instalação: {msg}", file=sys.stderr)
+        print(f"✗ Error during installation: {msg}", file=sys.stderr)
         return 1
 
 

@@ -1,4 +1,4 @@
-name: ReimsOS Release
+name: Reims Desktop Release
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Tag da versão (ex: v0.2.0)"
+        description: "Release tag (e.g. v0.2.0)"
         required: true
         default: "v0.2.0"
 
@@ -52,7 +52,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name || inputs.tag_name }}
-          name: ReimsOS ${{ github.ref_name || inputs.tag_name }}
+          name: Reims Desktop ${{ github.ref_name || inputs.tag_name }}
           generate_release_notes: true
           draft: false
           prerelease: false

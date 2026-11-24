@@ -1,4 +1,4 @@
-name: Build ReimsOS ISO
+name: Build Reims Desktop ISO
 
 on:
   workflow_dispatch:
@@ -21,13 +21,13 @@ jobs:
         run: |
           ./packaging/scripts/build_all.sh --mock
 
-      - name: Build ReimsOS ISO
+      - name: Build Reims Desktop ISO
         run: |
           sudo ./iso-builder/scripts/build_iso.sh
 
-      - name: Upload ReimsOS ISO Image
+      - name: Upload Reims Desktop ISO Image
         uses: actions/upload-artifact@v4
         with:
-          name: reims-os-iso
+          name: reims-desktop-iso
           path: dist/iso/*.iso
           retention-days: 7
