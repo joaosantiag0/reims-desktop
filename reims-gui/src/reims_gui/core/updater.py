@@ -19,7 +19,7 @@ from typing import Any, Callable, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_REPO = "steelbrain/reims-os"
+DEFAULT_REPO = "joaosantiag0/reims-desktop"
 DEFAULT_VERSION = "0.1.0"
 
 
