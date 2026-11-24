@@ -1,15 +1,33 @@
-# Lista de pacotes bloatware a serem removidos do Live CD do ReimsOS
+# Lista de pacotes bloatware a serem removidos da imagem base do Reims Desktop
 # Garante um desktop limpo, ultra-leve e sem programas desnecessários pré-instalados.
 
-# Jogos e Utilitários supérfluos
-2048-qt
-gnome-mines
-aisleriot
-
-# Suíte de escritório e editores não essenciais
+# Suíte de escritório e editores
 libreoffice*
+libreoffice-common
+libreoffice-core
+libreoffice-calc
+libreoffice-writer
+libreoffice-impress
+libreoffice-draw
+libreoffice-math
+libreoffice-base-core
+libreoffice-style-colibre
+libreoffice-style-breeze
 abiword*
 gnumeric*
+
+# Reprodutores de mídia e vídeo
+vlc
+vlc-data
+vlc-bin
+vlc-plugin-base
+vlc-plugin-qt
+vlc-plugin-video-output
+gnome-media
+
+# Navegadores e clientes de e-mail padrão
+firefox*
+thunderbird*
 
 # Clientes de Torrent e IRC
 transmission-qt
@@ -18,8 +36,10 @@ quassel
 quassel-data
 trojita
 
-# Reprodutores de mídia pesados
-vlc
-vlc-data
-vlc-bin
-gnome-media
+# Jogos e Utilitários supérfluos
+2048-qt
+gnome-mines
+aisleriot
+skanlite
+kcalc
+noblenote

@@ -33,6 +33,7 @@ class TestIsoRemastering(unittest.TestCase):
         self.assertIn("libreoffice", content)
         self.assertIn("transmission", content)
         self.assertIn("vlc", content)
+        self.assertIn("firefox", content)
 
     def test_desktop_conf_reims_branding(self):
         pcmanfm = self.custom_dir / "pcmanfm-qt-desktop.conf"

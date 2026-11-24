@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "=================================================="
+echo "    Reims Desktop - Bloatware Cleaner Utility     "
+echo "=================================================="
+
+if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
+    echo "ERRO: Este comando precisa de privilégios de root (sudo)." >&2
+    exit 1
+fi
+
+echo "==> Removendo suíte de escritório, reprodutores pesados e programas desnecessários..."
+
+PACKAGES_TO_REMOVE=(
+    libreoffice
+    libreoffice-common
+    libreoffice-core
+    libreoffice-calc
+    libreoffice-writer
+    libreoffice-impress
+    libreoffice-draw
+    libreoffice-math
+    libreoffice-base-core
+    libreoffice-style-colibre
+    libreoffice-style-breeze
+    vlc
+    vlc-bin
+    vlc-data
+    vlc-plugin-base
+    vlc-plugin-qt
+    vlc-plugin-video-output
+    firefox
+    thunderbird
+    transmission-qt
+    transmission-common
+    quassel
+    quassel-data
+    2048-qt
+    gnome-mines
+    aisleriot
+    skanlite
+    kcalc
+    noblenote
+)
+
+for pkg in "${PACKAGES_TO_REMOVE[@]}"; do
+    echo "  -> Purgando ${pkg}..."
+    apt-get purge -y "${pkg}" 2>/dev/null || true
+done
+
+# Remove snaps residuais se o snapd estiver presente
+if command -v snap &>/dev/null; then
+    echo "==> Verificando e removendo snaps..."
+    snap remove --purge firefox 2>/dev/null || true
+    snap remove --purge thunderbird 2>/dev/null || true
+fi
+
+echo "==> Limpando dependências órfãs e cache do APT..."
+apt-get autoremove --purge -y || true
+apt-get clean
+
+# Limpeza de atalhos residuais na área de trabalho e menus
+for dir in /usr/share/applications /etc/skel/Desktop /home/*/.local/share/applications /home/*/Desktop; do
+    if [[ -d "$dir" ]]; then
+        rm -f "$dir"/*libreoffice* "$dir"/*vlc* "$dir"/*firefox* "$dir"/*thunderbird* "$dir"/*transmission* "$dir"/*2048* "$dir"/*gnome-mines* "$dir"/*aisleriot* 2>/dev/null || true
+    fi
+done
+
+echo "✓ Todos os programas desnecessários foram removidos com sucesso!"
+echo "✓ Seu Reims Desktop está agora limpo, minimalista e ultraleve."
+exit 0

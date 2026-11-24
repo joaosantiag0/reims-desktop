@@ -235,6 +235,10 @@ cp -r "${CONFIG_DIR}/calamares/branding/reims/"* "${ROOTFS}/etc/calamares/brandi
 if [[ -f "${CONFIG_DIR}/calamares/settings.conf" ]]; then
     cp -v "${CONFIG_DIR}/calamares/settings.conf" "${ROOTFS}/etc/calamares/settings.conf"
 fi
+if [[ -d "${CONFIG_DIR}/calamares/modules" ]]; then
+    mkdir -p "${ROOTFS}/etc/calamares/modules"
+    cp -rv "${CONFIG_DIR}/calamares/modules/"* "${ROOTFS}/etc/calamares/modules/"
+fi
 
 # Remove módulos e contextos obsoletos de seleção de pacotes/snaps
 rm -f "${ROOTFS}/etc/calamares/modules/pkgselect"* "${ROOTFS}/usr/lib/x86_64-linux-gnu/calamares/modules/pkgselect/libcalamares_viewmodule_pkgselect.so" || true
@@ -414,10 +418,21 @@ cat << 'EOF' > "${ROOTFS}/tmp/customize.sh"
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
-# 1. Remove bloatware
-echo "==> Removendo pacotes desnecessarios..."
-grep -v '^#' /tmp/remove-packages.list | xargs apt-get purge -y || true
-apt-get autoremove -y
+# 1. Remove bloatware de forma resiliente
+echo "==> Removendo pacotes desnecessários da imagem base..."
+while IFS= read -r pkg || [[ -n "$pkg" ]]; do
+    pkg="$(echo "$pkg" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue
+    echo "  -> Purgando: $pkg"
+    apt-get purge -y "$pkg" 2>/dev/null || true
+done < /tmp/remove-packages.list
+
+if command -v snap &>/dev/null; then
+    snap remove --purge firefox 2>/dev/null || true
+    snap remove --purge thunderbird 2>/dev/null || true
+fi
+
+apt-get autoremove --purge -y || true
 
 # 2. Instala pacotes do Reims Desktop
 echo "==> Atualizando repositórios e instalando pacotes do Reims Desktop..."

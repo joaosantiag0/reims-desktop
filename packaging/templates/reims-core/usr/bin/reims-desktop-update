@@ -81,6 +81,12 @@ def main() -> int:
         help="Override GitHub repository (default: joaosantiag0/reims-desktop or $REIMS_GITHUB_REPO)",
     )
     parser.add_argument(
+        "--clean", "--clean-bloatware",
+        action="store_true",
+        dest="clean",
+        help="Remove default bloatware (LibreOffice, VLC, Firefox, etc.)",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Simulate download and installation without modifying the system",
@@ -113,6 +119,21 @@ def main() -> int:
     print(f"Current Version: {updater.current_version}")
     print(f"Repository:      https://github.com/{updater.repo}")
     print("--------------------------------------------------")
+
+    # Clean Bloatware Mode
+    if args.clean:
+        clean_tool = "/usr/bin/reims-clean-bloatware"
+        if not os.path.exists(clean_tool):
+            local_tool = Path(__file__).resolve().parent / "reims-clean-bloatware"
+            if local_tool.exists():
+                clean_tool = str(local_tool)
+        if os.path.exists(clean_tool):
+            cmd = [clean_tool] if os.geteuid() == 0 else ["sudo", "-E", clean_tool]
+            res = subprocess.run(cmd)
+            return res.returncode
+        else:
+            print("Error: reims-clean-bloatware utility not found.", file=sys.stderr)
+            return 1
 
     # System-only update mode
     if args.system and not args.full and not args.git:
