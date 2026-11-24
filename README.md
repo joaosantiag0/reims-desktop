@@ -4,14 +4,20 @@
   <img src="iso-builder/customization/reims-logo.png" alt="Reims Desktop Logo" width="140" />
   <h3>A Linux Distribution and Graphical Interface for Hardware-Accelerated macOS Virtualization via Vulkan</h3>
   <p>Built on Ubuntu 24.04 LTS (Noble) with an ultra-lightweight LXQt desktop, Calamares installer, and native <a href="https://github.com/steelbrain/reims-vgpu">reims-vgpu</a> integration.</p>
-  <p><strong>Unofficial Community Project</strong> &bull; Not affiliated with Apple Inc. or upstream authors.</p>
+  <p><strong>Independent Unofficial Community Project</strong> &bull; No connection to Apple Inc. or upstream Reims &bull; Zero Apple binaries bundled.</p>
 </div>
 
 ---
 
-> [!IMPORTANT]
-> **Disclaimer & Unofficial Project Notice:**  
-> **Reims Desktop is an unofficial, independent, community-driven open-source project.** It is **not** an official distribution, product, or service of Apple Inc., and is not affiliated with, sponsored by, or endorsed by Apple Inc. or upstream authors. macOS, Mac, and Apple are registered trademarks of Apple Inc.
+> [!CAUTION]
+> ### ⚖️ Legal Disclaimers & Compliance
+>
+> 1. **No Connection to Apple Inc. or Reims:**  
+>    **Reims Desktop is an independent, community-driven open-source project.** It has **no connection, affiliation, sponsorship, or endorsement with Apple Inc. or the upstream Reims (`steelbrain/reims-vgpu`) project or authors.** macOS, OS X, Mac, and Apple are registered trademarks of Apple Inc.
+>
+> 2. **Zero Apple Binaries Distributed (No Apple Code Bundled):**  
+>    **This repository, ISO images, and Debian packages contain NO Apple proprietary binaries, bootroms, kernels, drivers, or copyrighted software.**  
+>    Reims Desktop only provides standard open-source Linux software (KVM, QEMU, LXQt, and open-source helper utilities). All macOS recovery packages or installation media must be downloaded directly by the end user from Apple's public servers in accordance with Apple's software license agreements.
 
 ---
 
@@ -104,9 +110,8 @@ python3 -m reims_gui.main --mock
 
 ---
 
-## 📄 License & Trademarks
+## 📄 License, Trademarks & Compliance
 
-Distributed under open-source licenses. Refer to individual component packaging control files and license headers for details.
-
-> [!NOTE]
-> **Trademarks:** macOS, OS X, and Apple are registered trademarks of Apple Inc. Reims Desktop is an independent open-source community effort and is not affiliated with or endorsed by Apple Inc.
+* **Open-Source Licensing:** Distributed under open-source licenses (GPL/MIT). Refer to individual component packaging control files and license headers for details.
+* **No Apple Proprietary Code:** This repository, generated `.deb` packages, and ISO builds do **not** host, distribute, or bundle any Apple intellectual property, proprietary macOS binaries, firmware, or recovery files.
+* **Trademarks & Affiliation:** macOS, OS X, and Apple are registered trademarks of Apple Inc. Reims Desktop is an independent open-source community effort and has no affiliation, connection, or endorsement with Apple Inc. or the upstream Reims repository.

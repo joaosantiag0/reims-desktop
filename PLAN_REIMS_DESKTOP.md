@@ -3,7 +3,7 @@
 > **Executive Summary:**  
 > This document details the technical feasibility, software architecture, and complete implementation roadmap for **Reims Desktop**: an unofficial, ultra-lightweight, bloatware-free Linux distribution based on **Ubuntu 24.04 LTS**, designed for high-performance macOS virtualization with hardware graphics acceleration via [reims-vgpu](https://github.com/steelbrain/reims-vgpu), a modern graphical installer with multi-language support (i18n), comprehensive GPU driver support (NVIDIA, AMD, Intel), and a native Qt GUI application for `reims-desktop-ctl`.
 >
-> *Disclaimer: Reims Desktop is an independent, unofficial community project and is not affiliated with, sponsored by, or endorsed by Apple Inc. or upstream authors.*
+> *Legal Disclaimer: Reims Desktop is an independent, unofficial community project with NO connection to or affiliation with Apple Inc. or upstream Reims (steelbrain/reims-vgpu). This project distributes ZERO Apple binaries, proprietary code, or macOS installation media.*
 
 ---
 

@@ -4,9 +4,10 @@ Native Qt graphical user interface for managing macOS virtual machines with hard
 
 Engineered for **Reims Desktop** (Ubuntu 24.04 LTS / LXQt base), but compatible with any modern Linux distribution supporting KVM and Vulkan.
 
-> [!NOTE]
-> **Unofficial Community Project:**  
-> This application is an independent, unofficial open-source utility and is not affiliated with, sponsored by, or endorsed by Apple Inc. or upstream authors.
+> [!CAUTION]
+> **Legal Disclaimer & Unofficial Project Notice:**  
+> 1. **No Connection:** This application is an independent, unofficial community tool with **no connection to, affiliation with, or endorsement from Apple Inc. or upstream Reims (`steelbrain/reims-vgpu`)**.  
+> 2. **No Apple Binaries:** This software **contains no Apple proprietary binaries or copyrighted macOS code**. Any recovery files or installation packages are downloaded directly by the end user from Apple's public servers.
 
 ---
 

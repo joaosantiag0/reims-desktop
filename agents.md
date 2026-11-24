@@ -36,3 +36,14 @@ This document establishes operational guidelines, best practices, and mandatory 
 2. **Incremental Implementation:** Make cohesive changes in small, logical steps.
 3. **Validation:** Run all test suites across projects.
 4. **Clear Communication:** Document changes clearly with absolute file links and state test results.
+
+---
+
+## 4. Legal & Compliance Standards (Mandatory)
+
+> [!CAUTION]
+> **Strict compliance rules regarding Apple intellectual property and upstream projects:**
+
+* **Zero Apple Binaries:** Never commit, bundle, or distribute any Apple proprietary binaries, ROMs, firmware, kernel images, DMGs, or copyrighted macOS assets in this repository or in any generated `.deb` packages or ISOs.
+* **User-Side Recovery:** Any macOS recovery downloads or installation assets must only be fetched directly by the end-user on their own machine from Apple's public servers.
+* **No Affiliation Disclaimers:** Always maintain clear disclaimers that Reims Desktop is an independent, unofficial community project with **no connection to or affiliation with Apple Inc. or upstream Reims (`steelbrain/reims-vgpu`)**.
