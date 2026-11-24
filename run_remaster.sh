@@ -34,6 +34,73 @@ fi
 echo "==> Atualizando /mnt/installer/reims-os.iso com a nova imagem..."
 cp -f "${OUTPUT_ISO}" /mnt/installer/reims-os.iso
 
+echo "==> Copiando ISO para a raiz do SSD (/reims-os.iso no nvme0n1p2)..."
+cp -f "${OUTPUT_ISO}" /reims-os.iso
+
+echo "==> Atualizando /etc/grub.d/40_custom com opção de boot direto do SSD..."
+cat << 'EOF' > /etc/grub.d/40_custom
+#!/bin/sh
+exec tail -n +3 $0
+
+# ReimsOS Live Installer (Direto do SSD nvme0n1p2 - Alta Velocidade)
+menuentry "Instalar ReimsOS (Direto do SSD - Alta Velocidade)" --class reims --class gnu-linux {
+    insmod part_gpt
+    insmod ext2
+    insmod loopback
+    search --no-floppy --fs-uuid --set=root c4613fcf-5953-482a-9202-9da73f43191e
+    set isofile="/reims-os.iso"
+    loopback loop $isofile
+    linux (loop)/casper/vmlinuz boot=casper iso-scan/filename=$isofile noprompt noeject quiet splash ---
+    initrd (loop)/casper/initrd
+}
+
+# ReimsOS Live Installer (Sem Pendrive - Boot Direto do Disco sda1)
+menuentry "Instalar ReimsOS (Sem Pendrive - Boot Direto do Disco sda1)" --class reims --class gnu-linux {
+    insmod part_gpt
+    insmod fat
+    insmod loopback
+    search --no-floppy --fs-uuid --set=root 43D3-471B
+    set isofile="/reims-os.iso"
+    loopback loop $isofile
+    linux (loop)/casper/vmlinuz boot=casper iso-scan/filename=$isofile noprompt noeject quiet splash ---
+    initrd (loop)/casper/initrd
+}
+
+menuentry "Instalar ReimsOS (Modo Seguro / Safe Graphics)" --class reims --class gnu-linux {
+    insmod part_gpt
+    insmod ext2
+    insmod loopback
+    search --no-floppy --fs-uuid --set=root c4613fcf-5953-482a-9202-9da73f43191e
+    set isofile="/reims-os.iso"
+    loopback loop $isofile
+    linux (loop)/casper/vmlinuz boot=casper iso-scan/filename=$isofile nomodeset noprompt noeject quiet splash ---
+    initrd (loop)/casper/initrd
+}
+
+# GParted Live a partir do ISO no HDD (sda1)
+menuentry "GParted Live (ISO no HDD) - redimensionar SSD" {
+    insmod part_gpt
+    insmod fat
+    insmod loopback
+    search --no-floppy --fs-uuid --set=root 43D3-471B
+    set isofile="/gparted-live.iso"
+    loopback loop $isofile
+    linux (loop)/live/vmlinuz boot=live union=overlay username=user config components loglevel=3 noswap net.ifnames=0 nosplash findiso=$isofile ocs_1_cpu_udev scsi_mod.use_blk_mq=0 nvme.poll_queues=1
+    initrd (loop)/live/initrd.img
+}
+
+# OpenCore (Hackintosh)
+menuentry "OpenCore (Hackintosh)" {
+    insmod part_gpt
+    insmod fat
+    search --no-floppy --file /EFI/OC/OpenCore.efi --set=root
+    chainloader /EFI/OC/OpenCore.efi
+}
+EOF
+chmod +x /etc/grub.d/40_custom
+echo "==> Atualizando menu do GRUB no SSD (update-grub)..."
+update-grub
+
 echo "==> Atualizando vmlinuz, initrd, filesystem.squashfs e bootloader EFI na particao /dev/sda1..."
 mkdir -p /tmp/remaster_iso_mnt
 mount -o loop,ro /mnt/installer/reims-os.iso /tmp/remaster_iso_mnt
