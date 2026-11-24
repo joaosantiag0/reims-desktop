@@ -1,38 +1,38 @@
-# Diretrizes para Agentes de IA (agents.md)
+# Guidelines for AI Agents (agents.md)
 
-Este documento estabelece as diretrizes operacionais, boas práticas e padrões mandatórios para qualquer Agente de IA trabalhando no repositório do **ReimsOS** e em seus subprojetos (como o `reims-gui`, scripts de empacotamento `.deb` e automação da ISO).
+This document establishes operational guidelines, best practices, and mandatory standards for any AI Agent working in the **Reims Desktop** repository and its subprojects (such as `reims-gui`, `.deb` packaging scripts, and ISO automation).
 
 ---
 
-## 1. Testes Automatizados (Mandatório)
+## 1. Automated Testing (Mandatory)
 
 > [!IMPORTANT]
-> **Sempre que possível, crie e execute testes automatizados.**
+> **Always create and run automated tests whenever possible.**
 
-* **Cobertura Proativa:** Qualquer nova funcionalidade, correção de bug ou refatoração de código deve vir acompanhada dos respectivos testes automatizados (testes unitários, testes de integração ou smoke tests).
-* **Execução Antes da Entrega:** O agente **nunca** deve considerar uma tarefa finalizada sem antes executar os testes localmente e verificar que todos passaram com 100% de sucesso.
-* **Isolamento e Modos Mock:** Como este projeto lida com virtualização e hardware específico (KVM, Vulkan, `/dev/udmabuf`, GPUs dedicadas), sempre implemente e mantenha modos de teste e simulação (mock) que permitam rodar a suíte de testes em qualquer ambiente (como máquinas de desenvolvimento sem KVM ou servidores de CI/CD).
-* **Tolerância Zero a Testes Quebrados:** Em caso de falha em qualquer teste, a correção do problema reportado deve ser priorizada imediatamente antes de qualquer novo commit ou resposta ao usuário.
+* **Proactive Coverage:** Any new feature, bug fix, or code refactoring must be accompanied by relevant automated tests (unit tests, integration tests, or smoke tests).
+* **Execution Before Completion:** The agent must **never** consider a task complete without first running all test suites locally and verifying that all tests pass with 100% success.
+* **Isolation and Mock Modes:** Because this project interfaces with hardware virtualization (KVM, Vulkan, `/dev/udmabuf`, dedicated GPUs), always maintain test and mock modes that allow the test suite to run in any environment (such as macOS development machines without KVM or headless CI/CD servers).
+* **Zero Tolerance for Broken Tests:** In case of any test failure, fixing the reported issue takes immediate priority before making new commits or replying to the user.
 
 ---
 
-## 2. Qualidade de Código e Padrões de Projeto
+## 2. Code Quality and Design Standards
 
 * **Python (`reims-gui`):**
-  * Uso de anotações de tipo estritas (`type hints` com `from __future__ import annotations`).
-  * Código modular, separando camada de apresentação (Qt/PySide6), regras de negócio (`core`) e internacionalização (`i18n`).
-  * Tratamento explícito de exceções e logs estruturados (`logging`).
-* **Internacionalização (i18n):**
-  * Nunca adicione strings estáticas diretamente na interface gráfica. Sempre utilize as chaves de tradução (`t("chave")`) e mantenha sincronizados os arquivos em `locales/` (`pt_BR.json`, `en_US.json`, `es_ES.json`).
-* **Scripts Shell / Bash (Build e ISO):**
-  * Todos os scripts shell devem iniciar com `set -euo pipefail`.
-  * Verifique se scripts de automação são compatíveis com ShellCheck e não dependem de caminhos absolutos arbitrários.
+  * Strict type annotations (`type hints` with `from __future__ import annotations`).
+  * Modular code separating presentation (Qt/PySide6/qt_compat), business logic (`core`), and internationalization (`i18n`).
+  * Explicit exception handling and structured logging (`logging`).
+* **Internationalization (i18n):**
+  * Never add hardcoded static strings directly into the graphical interface. Always use translation keys (`t("key")`) and keep locale files synchronized in `locales/` (`en_US.json`, `pt_BR.json`, `es_ES.json`).
+* **Shell Scripts / Bash (Build and ISO):**
+  * All shell scripts must start with `set -euo pipefail`.
+  * Ensure automation scripts are ShellCheck compliant and do not rely on arbitrary hardcoded absolute paths.
 
 ---
 
-## 3. Fluxo de Trabalho e Versionamento
+## 3. Workflow and Version Control
 
-1. **Verificação Prévia:** Analisar o estado atual do repositório (`git status`, testes existentes).
-2. **Implementação Incremental:** Realizar alterações coesas e em pequenos passos lógicos.
-3. **Validação:** Rodar a suíte de testes (`python3 -m unittest discover -s tests -p "test_*.py"`).
-4. **Comunicação Clara:** Documentar o que foi feito, apontar para os arquivos criados ou modificados com links absolutos e destacar os testes executados.
+1. **Pre-check:** Inspect current repository status (`git status`, existing test suites).
+2. **Incremental Implementation:** Make cohesive changes in small, logical steps.
+3. **Validation:** Run all test suites across projects.
+4. **Clear Communication:** Document changes clearly with absolute file links and state test results.
