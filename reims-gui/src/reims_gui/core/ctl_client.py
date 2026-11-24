@@ -2,9 +2,10 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 from reims_gui.core.models import (
     DoctorHealth,
@@ -18,13 +19,212 @@ from reims_gui.i18n.translator import t
 
 logger = logging.getLogger(__name__)
 
+# Marker in `reims-ctl --help` of the upstream Rust tool (steelbrain/reims-vgpu),
+# whose CLI differs from the bundled `reims-desktop-ctl` bash fallback.
+UPSTREAM_HELP_MARKER = "reims-vgpu"
+
+# GUI release names -> values upstream `create --macos` accepts (a name like
+# "tahoe", or a number: Sequoia is 15, Sonoma is 14, Ventura is 13).
+MACOS_RELEASE_MAP: Dict[str, str] = {
+    "tahoe": "tahoe",
+    "26": "tahoe",
+    "sequoia": "15",
+    "15": "15",
+    "sonoma": "14",
+    "14": "14",
+    "ventura": "13",
+    "13": "13",
+}
+
+
+def detect_ctl_backend(binary_path: str) -> str:
+    """Return "upstream" for the Rust reims-ctl, "desktop" for the bash fallback."""
+    try:
+        res = subprocess.run(
+            [binary_path, "--help"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        out = (res.stdout or "") + (res.stderr or "")
+        return "upstream" if UPSTREAM_HELP_MARKER in out else "desktop"
+    except Exception:
+        return "desktop"
+
+
+def _parse_mib(value: str) -> Optional[int]:
+    """Parse an upstream size string such as "16G", "512M" or "8192" into MiB."""
+    m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*([GgMm]?)", str(value).strip())
+    if not m:
+        return None
+    number = float(m.group(1))
+    unit = m.group(2).lower()
+    if unit == "g":
+        return int(number * 1024)
+    if unit == "m":
+        return int(number)
+    # A bare number is KiB in upstream's format_mib output; treat it as MiB anyway.
+    return int(number)
+
+
+def parse_upstream_doctor(output: str) -> Tuple[Dict[str, bool], Dict[str, str]]:
+    """Parse upstream `doctor` lines: "ok  <what>: <detail>" / "FAIL <what>: <detail>"."""
+    ok: Dict[str, bool] = {"kvm": False, "udmabuf": False, "vulkan": False, "qemu": False}
+    details: Dict[str, str] = {}
+    for raw in output.splitlines():
+        m = re.match(r"^(ok|FAIL)\s+(.+?):\s*(.*)$", raw.strip())
+        if not m:
+            continue
+        passed = m.group(1) == "ok"
+        what = m.group(2).strip().lower()
+        detail = m.group(3).strip()
+        for key in ok:
+            if key in what:
+                ok[key] = passed
+                details[key] = detail
+    return ok, details
+
+
+def parse_desktop_doctor(output: str) -> Tuple[Dict[str, bool], Dict[str, str]]:
+    """Heuristic parse of the bundled bash ctl's `doctor` output."""
+    low = output.lower()
+    ok = {
+        "kvm": "kvm" not in low or "ok" in low,
+        "udmabuf": "udmabuf" in low and "error" not in low,
+        "vulkan": "vulkan" in low and "error" not in low,
+        "qemu": "qemu" in low and "error" not in low,
+    }
+    return ok, {}
+
+
+def parse_upstream_gpus(output: str) -> List[GpuDevice]:
+    """Parse upstream `gpus` lines: " 1. Name  [10de:2520]  /path/icd.json"."""
+    gpus: List[GpuDevice] = []
+    for raw in output.splitlines():
+        m = re.match(
+            r"^\s*\d+\.\s+(.+?)\s+\[([0-9a-fA-F]{4}):([0-9a-fA-F]{4})\]",
+            raw.strip(),
+        )
+        if not m:
+            continue
+        try:
+            vendor_id = int(m.group(2), 16)
+            device_id = int(m.group(3), 16)
+        except ValueError:
+            vendor_id = device_id = 0
+        gpus.append(
+            GpuDevice(
+                name=m.group(1).strip(),
+                vendor_id=vendor_id,
+                device_id=device_id,
+                is_default=len(gpus) == 0,
+            )
+        )
+    return gpus
+
+
+def parse_desktop_gpus(output: str) -> List[GpuDevice]:
+    """Parse the bundled bash ctl's `gpus` lines: "[vendor:device] Name"."""
+    gpus: List[GpuDevice] = []
+    for raw in output.splitlines():
+        line = raw.strip()
+        if not line or not line.startswith("["):
+            continue
+        m = re.match(r"^\[([0-9a-fA-F]{4}):([0-9a-fA-F]{4})\]\s*(.*)$", line)
+        if not m:
+            continue
+        try:
+            vendor_id = int(m.group(1), 16)
+            device_id = int(m.group(2), 16)
+        except ValueError:
+            vendor_id = device_id = 0
+        gpus.append(
+            GpuDevice(
+                name=m.group(3).strip() or m.group(0),
+                vendor_id=vendor_id,
+                device_id=device_id,
+                is_default=len(gpus) == 0,
+            )
+        )
+    return gpus
+
+
+def parse_upstream_show(text: str) -> Dict[str, str]:
+    """Parse upstream `show NAME`: indented key/value lines under the VM's name."""
+    fields: Dict[str, str] = {}
+    for raw in text.splitlines():
+        m = re.match(r"^\s+([a-z ]+?)\s{2,}(.+?)\s*$", raw)
+        if m:
+            fields[m.group(1).strip()] = m.group(2)
+    return fields
+
+
+def vm_info_from_upstream(item: dict, show_fields: Optional[Dict[str, str]] = None) -> VmInfo:
+    """Build a VmInfo from an upstream `list --json` item plus `show` details."""
+    state = str(item.get("state", "stopped"))
+    status = VmStatus.RUNNING if state == "running" else VmStatus.STOPPED
+    fields = show_fields or {}
+    directory = str(item.get("dir", ""))
+    disk = fields.get("disk", "")
+    disk_name = disk.split(" ", 1)[0] if disk else ""
+    graphics = fields.get("graphics", "").lower()
+    gpu = fields.get("gpu", "")
+    if gpu.startswith("automatic"):
+        gpu = "Auto"
+    cpus = int(fields["cpus"]) if fields.get("cpus", "").isdigit() else 4
+    memory_mib = _parse_mib(fields.get("memory", "")) or 8192
+    return VmInfo(
+        name=str(item.get("name", "Unknown")),
+        status=status,
+        cpus=cpus,
+        memory_mib=memory_mib,
+        disk_path=os.path.join(directory, disk_name) if directory and disk_name else directory,
+        disk_size_gb=None,
+        graphics=GraphicsType.VMWARE_SVGA if "vmware" in graphics else GraphicsType.REIMS_VGPU,
+        gpu_name=gpu or "Auto",
+        macos_version="macOS",
+        pid=item.get("pid") if status == VmStatus.RUNNING else None,
+    )
+
+
+def build_upstream_create_cmd(binary_path: str, req: NewVmRequest) -> List[str]:
+    """Map a NewVmRequest onto upstream `reims-ctl create` flags."""
+    cmd = [binary_path, "create", req.name]
+    cmd += ["--cpus", str(req.cpus)]
+    memory_mib = int(req.memory_mib)
+    if memory_mib % 1024 == 0:
+        cmd += ["--memory", f"{memory_mib // 1024}G"]
+    else:
+        cmd += ["--memory", f"{memory_mib}M"]
+    cmd += ["--disk-size", f"{int(req.disk_size_gb)}G"]
+    if req.custom_installer_path:
+        cmd += ["--installer", str(req.custom_installer_path)]
+    else:
+        macos = MACOS_RELEASE_MAP.get(str(req.macos_release).lower(), "latest")
+        cmd += ["--macos", macos]
+    if req.gpu and req.gpu.name and req.gpu.name.lower() != "auto":
+        cmd += ["--gpu", req.gpu.name]
+    return cmd
+
 
 class ReimsCtlClient:
-    """Client wrapper for calling the `reims-ctl` CLI tool."""
+    """Client wrapper for calling the `reims-ctl` CLI tool.
+
+    Speaks two backends: the upstream Rust reims-ctl (steelbrain/reims-vgpu),
+    detected by its `--help` text, and the bundled bash `reims-desktop-ctl`.
+    """
 
     def __init__(self, binary_path: Optional[str] = None, mock: bool = False):
-        self.binary_path = binary_path or shutil.which("reims-desktop-ctl") or shutil.which("reims-ctl") or "/usr/bin/reims-desktop-ctl"
+        self.binary_path = (
+            binary_path
+            or shutil.which("reims-ctl")
+            or shutil.which("reims-desktop-ctl")
+            or os.path.expanduser("~/.cargo/bin/reims-ctl")
+            or "/usr/bin/reims-desktop-ctl"
+        )
         self.mock = mock or not os.path.exists(self.binary_path)
+        self.backend = "mock" if self.mock else detect_ctl_backend(self.binary_path)
+        self._show_cache: Dict[str, Dict[str, str]] = {}
 
         # In-memory state for mock mode
         self._mock_vms: List[VmInfo] = [
@@ -81,11 +281,23 @@ class ReimsCtlClient:
         health = DoctorHealth()
         try:
             res = subprocess.run([self.binary_path, "doctor"], capture_output=True, text=True, timeout=10)
-            output = (res.stdout + res.stderr).lower()
-            health.kvm_ok = "kvm" not in output or "ok" in output
-            health.udmabuf_ok = "udmabuf" in output and "error" not in output
-            health.vulkan_ok = "vulkan" in output and "error" not in output
-            health.qemu_ok = "qemu" in output and "error" not in output
+            output = res.stdout + res.stderr
+            if self.backend == "upstream":
+                checks, details = parse_upstream_doctor(output)
+            else:
+                checks, details = parse_desktop_doctor(output.lower())
+            health.kvm_ok = checks["kvm"]
+            health.udmabuf_ok = checks["udmabuf"]
+            health.vulkan_ok = checks["vulkan"]
+            health.qemu_ok = checks["qemu"]
+            if details.get("kvm"):
+                health.kvm_details = details["kvm"]
+            if details.get("udmabuf"):
+                health.udmabuf_details = details["udmabuf"]
+            if details.get("vulkan"):
+                health.vulkan_details = details["vulkan"]
+            if details.get("qemu"):
+                health.qemu_details = details["qemu"]
         except Exception as e:
             logger.warning(f"Failed to execute reims-ctl doctor: {e}")
             health.kvm_ok = os.path.exists("/dev/kvm") and os.access("/dev/kvm", os.R_OK | os.W_OK)
@@ -102,19 +314,33 @@ class ReimsCtlClient:
 
         try:
             res = subprocess.run([self.binary_path, "gpus"], capture_output=True, text=True, check=True, timeout=8)
-            gpus: List[GpuDevice] = []
-            for line in res.stdout.strip().splitlines():
-                line = line.strip()
-                if not line or not line.startswith("["):
-                    continue
-                # Format: [vendor:device] Name
-                parts = line.split(maxsplit=1)
-                name = parts[1] if len(parts) > 1 else parts[0]
-                gpus.append(GpuDevice(name=name, vendor_id=0, device_id=0, is_default=len(gpus) == 0))
+            if self.backend == "upstream":
+                gpus = parse_upstream_gpus(res.stdout)
+            else:
+                gpus = parse_desktop_gpus(res.stdout)
             return gpus if gpus else self._mock_gpus
         except Exception as e:
             logger.error(f"Error listing GPUs: {e}")
             return self._mock_gpus
+
+    def _upstream_show(self, name: str) -> Dict[str, str]:
+        cached = self._show_cache.get(name)
+        if cached is not None:
+            return cached
+        try:
+            res = subprocess.run(
+                [self.binary_path, "show", name],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=8,
+            )
+            fields = parse_upstream_show(res.stdout)
+        except Exception as e:
+            logger.warning(f"Error reading VM details for {name}: {e}")
+            fields = {}
+        self._show_cache[name] = fields
+        return fields
 
     def list_vms(self) -> List[VmInfo]:
         if self.mock:
@@ -123,36 +349,43 @@ class ReimsCtlClient:
         try:
             res = subprocess.run([self.binary_path, "list", "--json"], capture_output=True, text=True, check=True, timeout=10)
             data = json.loads(res.stdout)
-            vms = []
-            for item in data:
-                status = VmStatus.RUNNING if item.get("running") else VmStatus.STOPPED
-                config = item.get("config", {})
-                disk_size = config.get("disk_size_gb")
-                if disk_size is not None:
-                    try:
-                        disk_size = float(disk_size)
-                    except (ValueError, TypeError):
-                        disk_size = None
-
-                gpu_val = config.get("gpu")
-                macos_rel = str(config.get("macos_release", "Tahoe")).capitalize()
-                vms.append(
-                    VmInfo(
-                        name=item.get("name", "Unknown"),
-                        status=status,
-                        cpus=config.get("cpus", 4),
-                        memory_mib=config.get("memory_mib", 8192),
-                        disk_path=config.get("disk", ""),
-                        disk_size_gb=disk_size,
-                        graphics=GraphicsType.REIMS_VGPU if config.get("graphics") == "ReimsVgpu" else GraphicsType.VMWARE_SVGA,
-                        gpu_name=gpu_val,
-                        macos_version=f"macOS {macos_rel}",
-                    )
-                )
-            return vms
         except Exception as e:
             logger.warning(f"Error fetching VM list with --json: {e}")
             return []
+
+        vms: List[VmInfo] = []
+        if self.backend == "upstream":
+            for item in data:
+                fields = self._upstream_show(str(item.get("name", "")))
+                vms.append(vm_info_from_upstream(item, fields))
+            return vms
+
+        for item in data:
+            status = VmStatus.RUNNING if item.get("running") else VmStatus.STOPPED
+            config = item.get("config", {})
+            disk_size = config.get("disk_size_gb")
+            if disk_size is not None:
+                try:
+                    disk_size = float(disk_size)
+                except (ValueError, TypeError):
+                    disk_size = None
+
+            gpu_val = config.get("gpu")
+            macos_rel = str(config.get("macos_release", "Tahoe")).capitalize()
+            vms.append(
+                VmInfo(
+                    name=item.get("name", "Unknown"),
+                    status=status,
+                    cpus=config.get("cpus", 4),
+                    memory_mib=config.get("memory_mib", 8192),
+                    disk_path=config.get("disk", ""),
+                    disk_size_gb=disk_size,
+                    graphics=GraphicsType.REIMS_VGPU if config.get("graphics") == "ReimsVgpu" else GraphicsType.VMWARE_SVGA,
+                    gpu_name=gpu_val,
+                    macos_version=f"macOS {macos_rel}",
+                )
+            )
+        return vms
 
     def start_vm(self, name: str) -> bool:
         if self.mock:
@@ -167,7 +400,29 @@ class ReimsCtlClient:
             env = dict(os.environ)
             if "DISPLAY" not in env or not env["DISPLAY"]:
                 env["DISPLAY"] = ":0"
-            res = subprocess.run([self.binary_path, "start", name], check=True, timeout=15, env=env, capture_output=True, text=True)
+            if self.backend == "upstream":
+                # The upstream ctl may stay attached to QEMU where no systemd user
+                # manager lingers (e.g. over SSH): never wait for it, and never kill it.
+                proc = subprocess.Popen(
+                    [self.binary_path, "start", name],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    env=env,
+                )
+                try:
+                    code = proc.wait(timeout=10)
+                    return code == 0
+                except subprocess.TimeoutExpired:
+                    # Still attached: the VM window is running, so this is success.
+                    return True
+            res = subprocess.run(
+                [self.binary_path, "start", name],
+                check=True,
+                timeout=15,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
             logger.info("start_vm output: %s", res.stdout)
             return True
         except Exception as e:
@@ -187,7 +442,9 @@ class ReimsCtlClient:
         if force:
             cmd.append("--force")
         try:
-            subprocess.run(cmd, check=True, timeout=15)
+            timeout = 10 if self.backend == "desktop" else 120
+            subprocess.run(cmd, check=True, timeout=timeout)
+            self._show_cache.pop(name, None)
             return True
         except Exception as e:
             logger.error(f"Failed to stop VM {name}: {e}")
@@ -219,20 +476,23 @@ class ReimsCtlClient:
             self._mock_vms.append(new_vm)
             return True
 
-        cmd = [
-            self.binary_path,
-            "create",
-            req.name,
-            f"--cpus={req.cpus}",
-            f"--memory-mib={req.memory_mib}",
-            f"--disk-gb={req.disk_size_gb}",
-        ]
-        if req.gpu:
-            cmd.append(f"--gpu={req.gpu.name}")
-        if req.custom_installer_path:
-            cmd.append(f"--installer={req.custom_installer_path}")
+        if self.backend == "upstream":
+            cmd = build_upstream_create_cmd(self.binary_path, req)
         else:
-            cmd.append(f"--macos={req.macos_release}")
+            cmd = [
+                self.binary_path,
+                "create",
+                req.name,
+                f"--cpus={req.cpus}",
+                f"--memory-mib={req.memory_mib}",
+                f"--disk-gb={req.disk_size_gb}",
+            ]
+            if req.gpu:
+                cmd.append(f"--gpu={req.gpu.name}")
+            if req.custom_installer_path:
+                cmd.append(f"--installer={req.custom_installer_path}")
+            else:
+                cmd.append(f"--macos={req.macos_release}")
 
         try:
             proc = subprocess.Popen(
@@ -248,25 +508,41 @@ class ReimsCtlClient:
                     line_str = line.strip()
                     if not line_str:
                         continue
-                    if "[1/4]" in line_str:
+                    step_msg = None
+                    m = re.search(r"(\d{1,3})%", line_str)
+                    if self.backend == "upstream":
+                        # Upstream streams free-form progress; bucket it by content.
+                        low = line_str.lower()
+                        if m:
+                            pct = min(max(int(m.group(1)), pct), 99)
+                        elif "download" in low or "fetch" in low:
+                            pct = max(pct, 20)
+                        elif "disk" in low:
+                            pct = max(pct, 50)
+                        elif "opencore" in low:
+                            pct = max(pct, 70)
+                        elif "created" in low or "created vm" in low or low.startswith("created"):
+                            pct = 100
+                    elif "[1/4]" in line_str or "[1/5]" in line_str:
                         pct = 25
                         step_msg = t("wizard.creation.step_init")
-                    elif "[2/4]" in line_str:
+                    elif "[2/4]" in line_str or "[2/5]" in line_str:
                         pct = 50
                         step_msg = t("wizard.creation.step_disk", size=req.disk_size_gb)
-                    elif "[3/4]" in line_str:
+                    elif "[3/4]" in line_str or "[3/5]" in line_str:
                         pct = 75
                         step_msg = t("wizard.creation.step_config")
-                    elif "[4/4]" in line_str or "sucesso" in line_str.lower():
+                    elif "[4/4]" in line_str or "[5/5]" in line_str or "sucesso" in line_str.lower():
                         pct = 100
                         step_msg = t("wizard.creation.step_done")
-                    else:
+
+                    if step_msg is None:
                         step_msg = line_str
 
                     if progress_callback:
                         progress_callback(pct, step_msg, line_str)
 
-            proc.wait(timeout=180)
+            proc.wait(timeout=600)
             return proc.returncode == 0
         except Exception as e:
             logger.error(f"Failed to create VM {req.name}: {e}")
@@ -281,6 +557,7 @@ class ReimsCtlClient:
 
         try:
             subprocess.run([self.binary_path, "delete", name, "--yes"], check=True, timeout=10)
+            self._show_cache.pop(name, None)
             return True
         except Exception as e:
             logger.error(f"Failed to delete VM {name}: {e}")

@@ -1,6 +1,7 @@
 """Unit tests for ReimsCtlClient and core models."""
 
 import unittest
+from reims_gui.core import ctl_client
 from reims_gui.core.ctl_client import ReimsCtlClient
 from reims_gui.core.models import (
     DoctorHealth,
@@ -74,6 +75,146 @@ class TestReimsCtlClient(unittest.TestCase):
 
         health.kvm_ok = False
         self.assertFalse(health.evaluate())
+
+
+class TestUpstreamBackend(unittest.TestCase):
+    """Parsers and command mapping for the upstream Rust reims-ctl."""
+
+    def test_detect_backend_by_help_marker(self):
+        from reims_gui.core import ctl_client
+        import unittest.mock as mock
+
+        with mock.patch.object(ctl_client.subprocess, "run") as run:
+            run.return_value = mock.Mock(
+                stdout="reims-ctl\n\nCreate, boot and manage macOS VMs on QEMU with reims-vgpu",
+                stderr="",
+            )
+            self.assertEqual(ctl_client.detect_ctl_backend("/fake/reims-ctl"), "upstream")
+
+            run.return_value = mock.Mock(stdout="reims-desktop-ctl (Reims Desktop build 0.1.0)", stderr="")
+            self.assertEqual(ctl_client.detect_ctl_backend("/fake/reims-ctl"), "desktop")
+
+    def test_parse_upstream_doctor(self):
+        output = "\n".join(
+            [
+                "ok  host: x86_64 Linux, runs x86_64 VMs",
+                "ok  files: settings in ~/.config, VMs in ~/.local/share/reims-ctl",
+                "ok  qemu: ~/.local/share/reims-ctl/qemu/current/bin/qemu-system-x86_64 (QEMU 9.0)",
+                "ok  /dev/kvm: usable",
+                "FAIL /dev/udmabuf: not openable",
+                "ok  vulkan: NVIDIA GeForce RTX 3060 (discrete, nvidia_icd.json)",
+            ]
+        )
+        checks, details = ctl_client.parse_upstream_doctor(output)
+        self.assertTrue(checks["kvm"])
+        self.assertFalse(checks["udmabuf"])
+        self.assertTrue(checks["vulkan"])
+        self.assertTrue(checks["qemu"])
+        self.assertEqual(details["kvm"], "usable")
+        self.assertEqual(details["udmabuf"], "not openable")
+
+    def test_parse_upstream_gpus(self):
+        output = "\n".join(
+            [
+                "By default a VM gets the only GPU, or, of several, a discrete GPU before an integrated one.",
+                " 1. NVIDIA GeForce RTX 3060  [10de:2520]  /usr/share/vulkan/icd.d/nvidia_icd.json",
+                " 2. AMD Radeon 780M (RADV)  [1002:15bf]  /usr/share/vulkan/icd.d/radeon_icd.json",
+                "Give a VM one with: reims-ctl set NAME --gpu NUMBER",
+            ]
+        )
+        gpus = ctl_client.parse_upstream_gpus(output)
+        self.assertEqual(len(gpus), 2)
+        self.assertEqual(gpus[0].name, "NVIDIA GeForce RTX 3060")
+        self.assertEqual(gpus[0].vendor_id, 0x10DE)
+        self.assertEqual(gpus[0].device_id, 0x2520)
+        self.assertTrue(gpus[0].is_default)
+        self.assertFalse(gpus[1].is_default)
+        self.assertEqual(gpus[1].device_id, 0x15BF)
+
+    def test_parse_desktop_gpus(self):
+        gpus = ctl_client.parse_desktop_gpus("[10de:2520] NVIDIA GeForce RTX 3060 Mobile")
+        self.assertEqual(len(gpus), 1)
+        self.assertEqual(gpus[0].name, "NVIDIA GeForce RTX 3060 Mobile")
+        self.assertEqual(gpus[0].vendor_id, 0x10DE)
+
+    def test_parse_upstream_show_and_list(self):
+        show = "\n".join(
+            [
+                "Tahoe",
+                "  state         running (pid 4242)",
+                "  cpus          6",
+                "  memory        16G",
+                "  directory     ~/.local/share/reims-ctl/vms/Tahoe",
+                "  disk          disk.qcow2 (qcow2, virtio)",
+                "  graphics      reims-vgpu",
+                "  gpu           automatic: the only GPU, or a discrete one before an integrated one",
+            ]
+        )
+        fields = ctl_client.parse_upstream_show(show)
+        self.assertEqual(fields["cpus"], "6")
+        self.assertEqual(fields["memory"], "16G")
+        self.assertEqual(fields["disk"], "disk.qcow2 (qcow2, virtio)")
+
+        info = ctl_client.vm_info_from_upstream(
+            {"name": "Tahoe", "dir": "/home/u/.local/share/reims-ctl/vms/Tahoe", "state": "running", "pid": 4242},
+            fields,
+        )
+        self.assertEqual(info.name, "Tahoe")
+        self.assertEqual(info.status, VmStatus.RUNNING)
+        self.assertEqual(info.cpus, 6)
+        self.assertEqual(info.memory_mib, 16384)
+        self.assertTrue(info.disk_path.endswith("disk.qcow2"))
+        self.assertEqual(info.gpu_name, "Auto")
+        self.assertEqual(info.pid, 4242)
+
+    def test_parse_mib(self):
+        self.assertEqual(ctl_client._parse_mib("16G"), 16384)
+        self.assertEqual(ctl_client._parse_mib("512M"), 512)
+        self.assertEqual(ctl_client._parse_mib("8192"), 8192)
+        self.assertIsNone(ctl_client._parse_mib("bogus"))
+
+    def test_build_upstream_create_cmd(self):
+        req = NewVmRequest(
+            name="Tahoe",
+            macos_release="tahoe",
+            cpus=6,
+            memory_mib=16384,
+            disk_size_gb=128,
+        )
+        cmd = ctl_client.build_upstream_create_cmd("/usr/bin/reims-ctl", req)
+        self.assertEqual(
+            cmd,
+            [
+                "/usr/bin/reims-ctl",
+                "create",
+                "Tahoe",
+                "--cpus",
+                "6",
+                "--memory",
+                "16G",
+                "--disk-size",
+                "128G",
+                "--macos",
+                "tahoe",
+            ],
+        )
+
+        req_installer = NewVmRequest(
+            name="Sequoia",
+            macos_release="sequoia",
+            cpus=4,
+            memory_mib=8192,
+            disk_size_gb=100,
+            custom_installer_path="/home/u/Install macOS Sequoia.iso",
+        )
+        cmd2 = ctl_client.build_upstream_create_cmd("/usr/bin/reims-ctl", req_installer)
+        self.assertIn("--installer", cmd2)
+        self.assertIn("/home/u/Install macOS Sequoia.iso", cmd2)
+        self.assertIn("--macos", cmd)  # online flow kept --macos
+
+    def test_client_backend_attribute(self):
+        client = ReimsCtlClient(mock=True)
+        self.assertEqual(client.backend, "mock")
 
 
 if __name__ == "__main__":
