@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# reims-firstboot-user (sessão do usuário, autostart)
+# Garante rede (abre nmtui em um terminal se preciso) e então executa o
+# reims-firstboot-setup como root via pkexec (diálogo de senha).
+# ==============================================================================
+set -euo pipefail
+
+FLAG_FILE="${REIMS_STATE_DIR:-/var/lib/reims}/firstboot-done"
+[[ -e "${FLAG_FILE}" ]] && exit 0
+
+command -v nmcli >/dev/null 2>&1 || exit 0
+# Só roda se o pacote core está presente
+[[ -x /usr/bin/reims-firstboot-setup ]] || exit 0
+
+net_connected() {
+    nmcli -t -f STATE g s 2>/dev/null | grep -q "connected"
+}
+
+# Espera curta por rede automática (ethernet)
+for _ in $(seq 1 10); do
+    net_connected && break
+    sleep 3
+done
+
+# Sem rede: abre um terminal com o nmtui para o usuário conectar
+if ! net_connected; then
+    if command -v qterminal >/dev/null 2>&1; then
+        qterminal -e bash -c 'echo "== Conecte-se à rede (Wi-Fi ou cabo), feche o nmtui e aguarde =="; nmtui' &
+    fi
+    # Espera o usuário conectar (até 5 min)
+    for _ in $(seq 1 100); do
+        net_connected && break
+        sleep 3
+    done
+fi
+
+net_connected || exit 0
+
+# Setup como root (diálogo de senha do polkit)
+if command -v pkexec >/dev/null 2>&1; then
+    pkexec /usr/bin/reims-firstboot-setup
+fi

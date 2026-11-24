@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Reims Desktop First Boot Setup
+Comment=Connects to the network and installs the upstream reims-vgpu stack
+Exec=/usr/bin/reims-firstboot-user
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true

@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# reims-firstboot-setup (roda como root, via pkexec, no primeiro boot)
+# Conecta (se necessário), baixa o stack upstream (reims-ctl Rust, reims-util
+# e QEMU com reims-vgpu) da última Release e atualiza os pacotes via apt.
+# Marca /var/lib/reims/firstboot-done ao concluir (roda uma vez só).
+# ==============================================================================
+set -euo pipefail
+
+FLAG_DIR="${REIMS_STATE_DIR:-/var/lib/reims}"
+FLAG_FILE="${FLAG_DIR}/firstboot-done"
+ASSET_URL="https://github.com/joaosantiag0/reims-desktop/releases/latest/download/reims-vgpu-amd64.deb"
+TMP_DEB="/tmp/reims-vgpu-amd64.deb"
+
+log() { echo "[reims-firstboot] $*"; }
+
+if [[ -e "${FLAG_FILE}" ]]; then
+    log "Primeiro boot já concluído; nada a fazer."
+    exit 0
+fi
+mkdir -p "${FLAG_DIR}"
+
+command -v dpkg >/dev/null 2>&1 || { log "dpkg não disponível; abortando."; exit 1; }
+
+# 1. Rede: espera até 60s por uma conexão (ethernet ou Wi-Fi já configurado)
+net_connected() {
+    command -v nmcli >/dev/null 2>&1 || return 0
+    nmcli -t -f STATE g s 2>/dev/null | grep -q "connected"
+}
+
+if ! net_connected; then
+    log "Sem rede: aguardando conexão (ethernet ou Wi-Fi) por até 60s..."
+    for _ in $(seq 1 30); do
+        sleep 2
+        net_connected && break
+    done
+fi
+
+if ! net_connected; then
+    log "Sem rede. Rode o passo de conexão (Wi-Fi) e o setup novamente:"
+    log "  nmtui  (conectar)  ;  sudo /usr/bin/reims-firstboot-setup"
+    exit 0
+fi
+log "Rede conectada."
+
+# 2. Download do deb upstream (Release 'latest', asset de nome fixo)
+log "Baixando reims-vgpu (upstream) de ${ASSET_URL} ..."
+if ! curl -fSL --retry 3 --progress-bar -o "${TMP_DEB}" "${ASSET_URL}"; then
+    log "Falha no download (sem release publicada ou sem rede). Tentará no próximo boot."
+    exit 0
+fi
+
+# 3. Instala o stack upstream e atualiza o restante pelo apt (assinado)
+log "Instalando reims-vgpu ..."
+if ! dpkg -i "${TMP_DEB}"; then
+    apt-get install -f -y
+fi
+
+log "Sincronizando o apt (reims-core, reims-gui e sistema) ..."
+apt-get update
+apt-get install -y reims-core reims-gui || true
+apt-get upgrade -y || true
+
+rm -f "${TMP_DEB}"
+touch "${FLAG_FILE}"
+log "Stack upstream instalado com sucesso. Reinicie a sessão para a GUI usar o reims-ctl upstream."

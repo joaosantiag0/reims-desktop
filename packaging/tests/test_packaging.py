@@ -150,6 +150,49 @@ class TestDebianPackaging(unittest.TestCase):
                 control = member.read().decode("utf-8") if member else ""
                 self.assertIn("Version: 0.1.1+test.20261124", control)
 
+    def test_firstboot_setup_packaging_and_guard(self):
+        """First-boot: scripts + autostart no deb; flag guarda re-execução."""
+        cmd = [str(self.scripts_dir / "build_core_deb.sh")]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertEqual(res.returncode, 0, f"build_core_deb.sh failed: {res.stderr}")
+
+        core_deb = self.dist_dir / "reims-core_0.1.0_all.deb"
+        self.assertTrue(core_deb.exists())
+
+        members = self._extract_deb_members(core_deb)
+        with tempfile.TemporaryDirectory() as tmp:
+            data_tar = Path(tmp) / "data.tar.gz"
+            data_tar.write_bytes(members["data.tar.gz"])
+            with tarfile.open(data_tar, "r:gz") as tar:
+                names = tar.getnames()
+                self.assertTrue(any("usr/bin/reims-firstboot-setup" in n for n in names))
+                self.assertTrue(any("usr/bin/reims-firstboot-user" in n for n in names))
+                self.assertTrue(any("autostart/reims-firstboot.desktop" in n for n in names))
+
+        # Guard do flag: com firstboot-done presente, sai 0 sem tocar em rede/dpkg
+        setup = self.repo_root / "packaging" / "templates" / "reims-core" / "usr" / "bin" / "reims-firstboot-setup"
+        os.chmod(setup, 0o755)
+        with tempfile.TemporaryDirectory() as tmp:
+            flag_dir = Path(tmp) / "state"
+            flag_dir.mkdir()
+            (flag_dir / "firstboot-done").touch()
+            env = dict(os.environ, REIMS_STATE_DIR=str(flag_dir))
+            res = subprocess.run([str(setup)], capture_output=True, text=True, env=env)
+            self.assertEqual(res.returncode, 0, f"setup failed: {res.stderr}")
+            self.assertIn("já concluído", res.stdout)
+
+        # Helper de sessão também respeita o flag (sai sem pkexec/nmcli)
+        helper = self.repo_root / "packaging" / "templates" / "reims-core" / "usr" / "bin" / "reims-firstboot-user"
+        os.chmod(helper, 0o755)
+        with tempfile.TemporaryDirectory() as tmp:
+            flag_dir = Path(tmp) / "state"
+            flag_dir.mkdir()
+            (flag_dir / "firstboot-done").touch()
+            env = dict(os.environ, REIMS_STATE_DIR=str(flag_dir))
+            res = subprocess.run([str(helper)], capture_output=True, text=True, env=env)
+            self.assertEqual(res.returncode, 0)
+            self.assertEqual(res.stdout, "")
+
     def test_generate_apt_repo_metadata(self):
         """generate_apt_repo.py deve produzir dists/pool com Packages por arquitetura."""
         import sys

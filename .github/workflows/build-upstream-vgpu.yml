@@ -1,0 +1,59 @@
+name: Build Upstream reims-vgpu
+
+# Compila o stack upstream (reims-ctl Rust, reims-util e QEMU com
+# reims-graphics-pci) no runner e empacota o .deb completo (~212 MB).
+# O deb é anexado à release da tag com nome fixo (reims-vgpu-amd64.deb),
+# pois o GitHub Pages tem limite de 100 MB por arquivo e não comporta o
+# pacote no repositório apt. O instalador/primeiro boot o busca de
+# releases/latest/download/reims-vgpu-amd64.deb
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-upstream-vgpu
+  cancel-in-progress: false
+
+jobs:
+  build-upstream:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build upstream stack and package (.deb)
+        env:
+          REIMS_VERSION: 0.1.0+upstream.${{ github.sha }}
+        run: |
+          ./packaging/scripts/build_reims_binaries.sh --upstream
+          ls -lh dist/
+
+      - name: Normalize asset name
+        run: |
+          cp dist/reims-vgpu_*.deb /tmp/reims-vgpu-amd64.deb
+          ls -lh /tmp/reims-vgpu-amd64.deb
+
+      - name: Upload artifact (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: reims-vgpu-amd64
+          path: /tmp/reims-vgpu-amd64.deb
+          retention-days: 14
+
+      - name: Attach to release (tag builds)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --generate-notes
+          gh release upload "$TAG" /tmp/reims-vgpu-amd64.deb \
+            --repo "$GITHUB_REPOSITORY" --clobber
