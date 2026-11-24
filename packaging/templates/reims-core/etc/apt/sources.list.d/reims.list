@@ -1,0 +1,3 @@
+# Reims Desktop Official APT Repository
+# Hosted via GitHub Pages: https://joaosantiag0.github.io/reims-desktop/
+deb [trusted=yes] https://joaosantiag0.github.io/reims-desktop noble main

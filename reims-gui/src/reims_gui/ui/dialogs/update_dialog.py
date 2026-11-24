@@ -13,6 +13,7 @@ QLabel = QtWidgets.QLabel
 QPushButton = QtWidgets.QPushButton
 QProgressBar = QtWidgets.QProgressBar
 QTextEdit = QtWidgets.QTextEdit
+QCheckBox = QtWidgets.QCheckBox
 
 from reims_gui.core.updater import ReleaseInfo, SystemUpdater
 from reims_gui.i18n.translator import t
@@ -69,7 +70,14 @@ class UpdateDialog(QDialog):
         )
         layout.addWidget(self.txt_notes)
 
-        # 3. Status e Barra de Progresso
+        # 3. Opções Adicionais
+        self.chk_system_update = QCheckBox(t("update.dialog.chk_system_update"))
+        self.chk_system_update.setStyleSheet("color: #94A3B8; font-size: 13px;")
+        if hasattr(self.chk_system_update, "setChecked"):
+            self.chk_system_update.setChecked(False)
+        layout.addWidget(self.chk_system_update)
+
+        # 4. Status e Barra de Progresso
         self.lbl_status = QLabel(t("update.dialog.status_ready"))
         self.lbl_status.setStyleSheet("color: #94A3B8; font-size: 13px;")
         layout.addWidget(self.lbl_status)
@@ -126,6 +134,14 @@ class UpdateDialog(QDialog):
 
             ok, msg = self.updater.install_debs(debs)
             if ok:
+                is_chk = getattr(self.chk_system_update, "isChecked", lambda: False)
+                if callable(is_chk) and is_chk():
+                    self.lbl_status.setText(t("update.dialog.status_updating_system"))
+                    self.progress_bar.setValue(90)
+                    ok_sys, msg_sys = self.updater.update_system()
+                    if not ok_sys:
+                        logger.warning("Falha ao atualizar base do sistema: %s", msg_sys)
+
                 self.progress_bar.setValue(100)
                 self.lbl_status.setText(t("update.dialog.status_success"))
                 self.lbl_status.setStyleSheet("color: #4ADE80; font-weight: bold;")

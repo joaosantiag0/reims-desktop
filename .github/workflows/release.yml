@@ -55,6 +55,7 @@ jobs:
 
       - name: Run Test Suites
         run: |
+          python3 -m unittest discover -s tests -p "test_*.py" -v
           python3 -m unittest discover -s iso-builder/tests -p "test_*.py" -v
           PYTHONPATH=reims-gui/src python3 -m unittest discover -s reims-gui/tests -p "test_*.py" -v
           python3 -m unittest discover -s packaging/tests -p "test_*.py" -v

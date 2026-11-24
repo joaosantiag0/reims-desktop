@@ -1,0 +1,42 @@
+name: Deploy APT Repository to GitHub Pages
+
+on:
+  push:
+    tags:
+      - "v*"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy-apt:
+    name: Build & Publish APT Repository
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build All Reims Debian Packages
+        run: |
+          ./packaging/scripts/build_all.sh --mock
+
+      - name: Generate APT Repository Structure
+        run: |
+          python3 scripts/generate_apt_repo.py --deb-dir dist --out-dir repo
+
+      - name: Deploy to GitHub Pages (gh-pages)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./repo
+          publish_branch: gh-pages

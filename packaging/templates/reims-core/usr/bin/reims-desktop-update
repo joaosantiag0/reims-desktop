@@ -51,6 +51,22 @@ def main() -> int:
         help="Update directly from public Git repository main branch",
     )
     parser.add_argument(
+        "-s", "--system",
+        action="store_true",
+        help="Update Ubuntu distribution packages and kernel/drivers (apt dist-upgrade)",
+    )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Update both Reims Desktop components and Ubuntu OS base packages",
+    )
+    parser.add_argument(
+        "--branch",
+        type=str,
+        default="main",
+        help="Git branch to pull from when using --git (default: main)",
+    )
+    parser.add_argument(
         "--repo",
         type=str,
         default=None,
@@ -90,12 +106,30 @@ def main() -> int:
     print(f"Repository:      https://github.com/{updater.repo}")
     print("--------------------------------------------------")
 
+    # System-only update mode
+    if args.system and not args.full and not args.git:
+        print("==> Updating Ubuntu base distribution packages (APT)...")
+        ok_sys, msg_sys = updater.update_system(dry_run=args.dry_run)
+        if ok_sys:
+            print(f"✓ {msg_sys}")
+            return 0
+        else:
+            print(f"✗ Error updating system: {msg_sys}", file=sys.stderr)
+            return 1
+
     # Git Update Mode
     if args.git:
-        print("==> Git mode enabled: Pulling from main branch...")
-        ok, msg = updater.update_from_git(dry_run=args.dry_run)
+        print(f"==> Git mode enabled: Pulling from {args.branch} branch...")
+        ok, msg = updater.update_from_git(branch=args.branch, dry_run=args.dry_run)
         if ok:
             print(f"✓ {msg}")
+            if args.full or args.system:
+                print("==> Updating Ubuntu base distribution packages (APT)...")
+                ok_sys, msg_sys = updater.update_system(dry_run=args.dry_run)
+                if not ok_sys:
+                    print(f"✗ Error updating system: {msg_sys}", file=sys.stderr)
+                    return 1
+                print(f"✓ {msg_sys}")
             return 0
         else:
             print(f"✗ Error: {msg}", file=sys.stderr)
@@ -160,6 +194,13 @@ def main() -> int:
     ok, msg = updater.install_debs(debs, dry_run=args.dry_run)
     if ok:
         print(f"✓ {msg}")
+        if args.full or args.system:
+            print("\n==> Updating Ubuntu base distribution packages (APT)...")
+            ok_sys, msg_sys = updater.update_system(dry_run=args.dry_run)
+            if not ok_sys:
+                print(f"✗ Error updating system: {msg_sys}", file=sys.stderr)
+                return 1
+            print(f"✓ {msg_sys}")
         print("\n🎉 Reims Desktop update completed successfully!")
         return 0
     else:

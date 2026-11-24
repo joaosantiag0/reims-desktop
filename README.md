@@ -59,24 +59,52 @@ reims-desktop/
 
 ---
 
+## 🌿 Branching Strategy
+
+This repository maintains two primary branches:
+- **`main` (Stable):** Production-ready code, official GitHub Releases (`v*`), and release ISO images.
+- **`development` (Rolling/Active):** Ongoing feature development, rapid testing, and rolling updates.
+
+---
+
 ## 🔄 Continuous Update System
 
-**Reims Desktop** includes an integrated update mechanism connected to this public GitHub repository:
+**Reims Desktop** provides accessible updates for both the desktop environment/programs and the underlying Linux operating system across multiple workflows:
 
-### 1. Via Graphical Interface
-- Click the **"Updates"** button on the top header of Reims Desktop.
+### 1. Via Graphical Interface (Control Center)
+- Click the **"Updates"** button on the top header of Reims Desktop (`reims-desktop`).
 - The application queries the GitHub Releases API in the background, displays formatted release notes, and downloads/installs the latest packages with a single click.
+- An optional checkbox allows updating the base operating system (Ubuntu security patches & drivers) simultaneously.
 
-### 2. Via Command Line
+### 2. Via Command Line (CLI - Official Releases)
 ```bash
 # Check if a new release is available
 reims-desktop-update --check
 
-# Download and install the latest release packages
+# Download and install the latest release packages (.deb)
 reims-desktop-update
 
-# Or perform a rolling update directly from the main Git branch
+# Update only Ubuntu distribution packages & drivers (APT)
+reims-desktop-update --system
+
+# Perform a full update of Reims Desktop + Ubuntu OS packages
+reims-desktop-update --full
+```
+
+### 3. Via Git Rolling Update (Development)
+```bash
+# Perform a rolling update directly from the stable main branch
 reims-desktop-update --git
+
+# Or pull and compile the cutting-edge development branch
+reims-desktop-update --git --branch development
+```
+
+### 4. Via Native Ubuntu APT Repository
+Reims Desktop packages are published directly to an official APT repository hosted on GitHub Pages:
+```bash
+# Repository is pre-configured on Reims Desktop (/etc/apt/sources.list.d/reims.list)
+sudo apt update && sudo apt upgrade
 ```
 
 ---
@@ -95,7 +123,8 @@ For rapid development cycles and testing on physical machines or target laptops,
 This repository enforces strict code quality and automated test coverage rules (compliant with [agents.md](agents.md)):
 
 ```bash
-# Run all test suites (ISO builder, Reims Desktop GUI, and Debian Packaging)
+# Run all test suites (Core & APT repo, ISO builder, Reims Desktop GUI, and Debian Packaging)
+python3 -m unittest discover -s tests -p "test_*.py"
 python3 -m unittest discover -s iso-builder/tests -p "test_*.py"
 PYTHONPATH=reims-gui/src python3 -m unittest discover -s reims-gui/tests -p "test_*.py"
 python3 -m unittest discover -s packaging/tests -p "test_*.py"

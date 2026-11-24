@@ -116,6 +116,7 @@ if not QT_BACKEND:
         QMessageBox = _MockQtObject
         QProgressBar = _MockQtObject
         QTextEdit = _MockQtObject
+        QCheckBox = _MockQtObject
 
     QtCore = _MockQtCore()  # type: ignore
     QtGui = _MockQtGui()  # type: ignore

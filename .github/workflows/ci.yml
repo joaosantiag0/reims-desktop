@@ -2,9 +2,9 @@ name: Reims Desktop CI
 
 on:
   push:
-    branches: [ "master", "main" ]
+    branches: [ "master", "main", "development" ]
   pull_request:
-    branches: [ "master", "main" ]
+    branches: [ "master", "main", "development" ]
 
 jobs:
   test-and-package:
@@ -43,6 +43,10 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           pip install -r reims-gui/requirements.txt
+
+      - name: Run Core & Pipeline Tests
+        run: |
+          python3 -m unittest discover -s tests -p "test_*.py" -v
 
       - name: Run reims-gui Unit Tests
         run: |

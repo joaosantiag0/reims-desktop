@@ -283,13 +283,60 @@ class SystemUpdater:
             logger.error("Exceção ao executar instalação de pacotes: %s", e)
             return False, str(e)
 
+    def update_system(
+        self,
+        dry_run: bool = False,
+    ) -> Tuple[bool, str]:
+        """Atualiza a base do sistema operacional (Ubuntu packages, kernel, drivers) via APT."""
+        if dry_run or os.environ.get("REIMS_MOCK_UPDATER") == "1":
+            logger.info("[MODO SIMULAÇÃO] Atualizando pacotes do sistema operacional via apt-get...")
+            return True, "Simulação de atualização do sistema operacional concluída com sucesso!"
+
+        update_cmd = ["apt-get", "update"]
+        upgrade_cmd = ["apt-get", "dist-upgrade", "-y"]
+
+        if os.geteuid() != 0:
+            update_cmd = ["sudo", "-E"] + update_cmd
+            upgrade_cmd = ["sudo", "-E"] + upgrade_cmd
+
+        logger.info("Executando atualização de repositórios APT: %s", " ".join(update_cmd))
+        try:
+            res_update = subprocess.run(
+                update_cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if res_update.returncode != 0:
+                err_msg = res_update.stderr.strip() or res_update.stdout.strip()
+                logger.error("Falha ao atualizar repositórios APT: %s", err_msg)
+                return False, f"Falha ao atualizar repositórios APT: {err_msg}"
+
+            logger.info("Executando atualização de pacotes da distribuição: %s", " ".join(upgrade_cmd))
+            res_upgrade = subprocess.run(
+                upgrade_cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if res_upgrade.returncode == 0:
+                logger.info("Sistema operacional atualizado com sucesso!")
+                return True, "Sistema operacional e drivers atualizados com sucesso!"
+            else:
+                err_msg = res_upgrade.stderr.strip() or res_upgrade.stdout.strip()
+                logger.error("Falha ao atualizar pacotes da distribuição: %s", err_msg)
+                return False, f"Falha na atualização do sistema: {err_msg}"
+        except Exception as e:
+            logger.error("Exceção ao executar atualização do sistema: %s", e)
+            return False, str(e)
+
     def update_from_git(
         self,
         repo_url: Optional[str] = None,
-        branch: str = "master",
+        branch: str = "main",
         dry_run: bool = False,
     ) -> Tuple[bool, str]:
-        """Atualiza componentes do sistema clonando/puxando a branch master do GitHub."""
+        """Atualiza componentes do sistema clonando/puxando a branch main/development do GitHub."""
         git_url = repo_url or f"https://github.com/{self.repo}.git"
 
         if dry_run or os.environ.get("REIMS_MOCK_UPDATER") == "1":

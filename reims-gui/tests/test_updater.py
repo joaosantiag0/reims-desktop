@@ -84,6 +84,15 @@ class TestSystemUpdater(unittest.TestCase):
         finally:
             os.environ.pop("REIMS_MOCK_UPDATER", None)
 
+    def test_mock_update_system(self):
+        os.environ["REIMS_MOCK_UPDATER"] = "1"
+        try:
+            ok, msg = self.updater.update_system(dry_run=True)
+            self.assertTrue(ok)
+            self.assertIn("Simulação", msg)
+        finally:
+            os.environ.pop("REIMS_MOCK_UPDATER", None)
+
     def test_cli_reims_update(self):
         repo_root = Path(__file__).resolve().parent.parent.parent
         cli_desktop_update = repo_root / "packaging" / "templates" / "reims-core" / "usr" / "bin" / "reims-desktop-update"
@@ -126,7 +135,22 @@ class TestSystemUpdater(unittest.TestCase):
             f"Unexpected output: {res_git.stdout}",
         )
 
-        # 5. Test wrapper reims-update
+        # 5. Test --mock --git --branch development --dry-run
+        res_branch = subprocess.run([sys.executable, str(cli_desktop_update), "--mock", "--git", "--branch", "development", "--dry-run"], capture_output=True, text=True, env=env)
+        self.assertEqual(res_branch.returncode, 0)
+        self.assertIn("development", res_branch.stdout)
+
+        # 6. Test --mock --system --dry-run
+        res_sys = subprocess.run([sys.executable, str(cli_desktop_update), "--mock", "--system", "--dry-run"], capture_output=True, text=True, env=env)
+        self.assertEqual(res_sys.returncode, 0)
+        self.assertIn("Simulação", res_sys.stdout)
+
+        # 7. Test --mock --full --dry-run --yes
+        res_full = subprocess.run([sys.executable, str(cli_desktop_update), "--mock", "--full", "--dry-run", "--yes"], capture_output=True, text=True, env=env)
+        self.assertEqual(res_full.returncode, 0)
+        self.assertIn("Simulação", res_full.stdout)
+
+        # 8. Test wrapper reims-update
         res_wrap = subprocess.run([str(cli_update), "--version"], capture_output=True, text=True, env=env)
         self.assertEqual(res_wrap.returncode, 0)
         self.assertIn("Reims Desktop", res_wrap.stdout)
@@ -148,6 +172,13 @@ class TestSystemUpdater(unittest.TestCase):
             dlg._handle_update()
             status_text = dlg.lbl_status.text() if callable(getattr(dlg.lbl_status, "text", None)) else dlg.lbl_status.text
             self.assertIn("sucesso", str(status_text).lower())
+
+            # Testa com checkbox de atualização do sistema marcado
+            if hasattr(dlg.chk_system_update, "setChecked"):
+                dlg.chk_system_update.setChecked(True)
+            dlg._handle_update()
+            status_text2 = dlg.lbl_status.text() if callable(getattr(dlg.lbl_status, "text", None)) else dlg.lbl_status.text
+            self.assertIn("sucesso", str(status_text2).lower())
             if hasattr(dlg, "close"):
                 dlg.close()
         finally:

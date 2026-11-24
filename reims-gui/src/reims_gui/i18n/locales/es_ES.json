@@ -50,6 +50,8 @@
   "update.dialog.status_ready": "Listo para descargar y actualizar los componentes de Reims Desktop.",
   "update.dialog.status_downloading": "Descargando paquetes de GitHub Releases...",
   "update.dialog.status_installing": "Instalando paquetes en el sistema operativo...",
+  "update.dialog.status_updating_system": "Actualizando sistema operativo y controladores de la distribución...",
+  "update.dialog.chk_system_update": "Actualizar también el sistema operativo y controladores (Ubuntu APT)",
   "update.dialog.status_success": "¡Sistema actualizado con éxito!",
   "update.dialog.status_error": "Error al actualizar: {err}",
   "update.dialog.btn_update_now": "Actualizar Ahora",

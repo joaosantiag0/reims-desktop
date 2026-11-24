@@ -64,6 +64,7 @@ class TestDebianPackaging(unittest.TestCase):
                 names = tar.getnames()
                 self.assertTrue(any("reims.conf" in n for n in names))
                 self.assertTrue(any("99-reims.rules" in n for n in names))
+                self.assertTrue(any("reims.list" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-desktop-update" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-update" in n for n in names))
 
