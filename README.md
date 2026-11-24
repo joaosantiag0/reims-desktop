@@ -81,6 +81,15 @@ reims-desktop-update --git
 
 ---
 
+## ⚡ High-Speed Hardware Sync & Direct Boot
+
+For rapid development cycles and testing on physical machines or target laptops, see the [FAST_TRANSFER_GUIDE.md](FAST_TRANSFER_GUIDE.md):
+- **Instant Memory Streaming:** Sync full code and packaging to the target host in ~2 seconds via piped SSH streams.
+- **Direct Disk Remastering:** Update live installation media and kernel images directly on internal storage (`/dev/sda1` / `/mnt/installer/`) without writing to USB drives.
+- **Raw High-Throughput Streams:** Transfer large ISO images at wire speed using `nc` or local HTTP streaming.
+
+---
+
 ## 🧪 Automated Testing
 
 This repository enforces strict code quality and automated test coverage rules (compliant with [agents.md](agents.md)):

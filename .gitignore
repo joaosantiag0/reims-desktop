@@ -38,3 +38,12 @@ ENV/
 *.squashfs
 /build/
 /chroot/
+*.qcow2
+
+# Notebook sync and local transfer artifacts
+*sync*.tar.gz
+sync_notebook.sh
+scripts/sync_to_notebook.sh
+.sync_config
+.env*
+/mnt/
