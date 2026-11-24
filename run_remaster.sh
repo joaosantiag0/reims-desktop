@@ -34,11 +34,14 @@ fi
 echo "==> Atualizando /mnt/installer/reims-os.iso com a nova imagem..."
 cp -f "${OUTPUT_ISO}" /mnt/installer/reims-os.iso
 
-echo "==> Atualizando vmlinuz, initrd e seletor de boot do GRUB na particao /dev/sda1..."
+echo "==> Atualizando vmlinuz, initrd, filesystem.squashfs e bootloader EFI na particao /dev/sda1..."
 mkdir -p /tmp/remaster_iso_mnt
 mount -o loop,ro /mnt/installer/reims-os.iso /tmp/remaster_iso_mnt
 cp -vf /tmp/remaster_iso_mnt/casper/vmlinuz /mnt/installer/casper/vmlinuz
 cp -vf /tmp/remaster_iso_mnt/casper/initrd /mnt/installer/casper/initrd
+cp -vf /tmp/remaster_iso_mnt/casper/filesystem.* /mnt/installer/casper/
+cp -rf /tmp/remaster_iso_mnt/EFI /mnt/installer/
+cp -rf /tmp/remaster_iso_mnt/.disk /mnt/installer/
 
 # Atualiza tema e menu do GRUB diretamente na particao do instalador (/dev/sda1)
 mkdir -p /mnt/installer/boot/grub/themes/reims

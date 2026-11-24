@@ -42,6 +42,25 @@ PACKAGES_TO_REMOVE=(
     skanlite
     kcalc
     noblenote
+    featherpad
+    featherpad-l10n
+    qtpass
+    redshift
+    redshift-gtk
+    texinfo
+    info
+    vim
+    vim-tiny
+    vim-common
+    vim-runtime
+    picom
+    compton
+    imagemagick
+    imagemagick-6.q16
+    imagemagick-6-common
+    lximage-qt
+    lximage-qt-l10n
+    screengrab
 )
 
 for pkg in "${PACKAGES_TO_REMOVE[@]}"; do
