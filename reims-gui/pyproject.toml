@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "reims-desktop"
 version = "0.1.0"
-description = "Graphical User Interface for reims-desktop-ctl and reims-vgpu on Reims Desktop / Linux"
+description = "Unofficial Graphical User Interface for reims-desktop-ctl and reims-vgpu on Reims Desktop / Linux"
 readme = "README.md"
 authors = [
     { name = "Reims Desktop Team" }

@@ -4,7 +4,14 @@
   <img src="iso-builder/customization/reims-logo.png" alt="Reims Desktop Logo" width="140" />
   <h3>A Linux Distribution and Graphical Interface for Hardware-Accelerated macOS Virtualization via Vulkan</h3>
   <p>Built on Ubuntu 24.04 LTS (Noble) with an ultra-lightweight LXQt desktop, Calamares installer, and native <a href="https://github.com/steelbrain/reims-vgpu">reims-vgpu</a> integration.</p>
+  <p><strong>Unofficial Community Project</strong> &bull; Not affiliated with Apple Inc. or upstream authors.</p>
 </div>
+
+---
+
+> [!IMPORTANT]
+> **Disclaimer & Unofficial Project Notice:**  
+> **Reims Desktop is an unofficial, independent, community-driven open-source project.** It is **not** an official distribution, product, or service of Apple Inc., and is not affiliated with, sponsored by, or endorsed by Apple Inc. or upstream authors. macOS, Mac, and Apple are registered trademarks of Apple Inc.
 
 ---
 
@@ -16,7 +23,7 @@ The system strips away bloatware, tunes the Linux kernel and graphics stack for 
 
 ---
 
-## 🛠️ Official Binaries (`reims-desktop*`)
+## 🛠️ Project Binaries (`reims-desktop*`)
 
 All binaries in the project are standardized under the `reims-desktop*` prefix for consistent CLI and automated script usage:
 
@@ -25,7 +32,7 @@ All binaries in the project are standardized under the `reims-desktop*` prefix f
 | **`reims-desktop`** | Main Qt graphical application (Reims Desktop Control Center) to configure, download, and run macOS virtual machines. | `reims-gui` |
 | **`reims-desktop-ctl`** | Command-line interface for host hardware diagnostics (`doctor`), GPU allocation, and VM lifecycle control. | `reims-ctl` |
 | **`reims-desktop-update`** | System updater CLI to check, download, and apply OS component updates from GitHub Releases or Git master. | `reims-update` |
-| **`reims-desktop-util`** | Disk image formatting and official Apple installer download automation utility. | `reims-util` |
+| **`reims-desktop-util`** | Disk image formatting and Apple recovery installer download automation utility. | `reims-util` |
 
 ---
 
@@ -59,7 +66,7 @@ reims-desktop/
 # Check if a new release is available
 reims-desktop-update --check
 
-# Download and install the latest official release packages
+# Download and install the latest release packages
 reims-desktop-update
 
 # Or perform a rolling update directly from the main Git branch
@@ -97,6 +104,9 @@ python3 -m reims_gui.main --mock
 
 ---
 
-## 📄 License
+## 📄 License & Trademarks
 
 Distributed under open-source licenses. Refer to individual component packaging control files and license headers for details.
+
+> [!NOTE]
+> **Trademarks:** macOS, OS X, and Apple are registered trademarks of Apple Inc. Reims Desktop is an independent open-source community effort and is not affiliated with or endorsed by Apple Inc.

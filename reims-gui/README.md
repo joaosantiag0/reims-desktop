@@ -4,6 +4,10 @@ Native Qt graphical user interface for managing macOS virtual machines with hard
 
 Engineered for **Reims Desktop** (Ubuntu 24.04 LTS / LXQt base), but compatible with any modern Linux distribution supporting KVM and Vulkan.
 
+> [!NOTE]
+> **Unofficial Community Project:**  
+> This application is an independent, unofficial open-source utility and is not affiliated with, sponsored by, or endorsed by Apple Inc. or upstream authors.
+
 ---
 
 ## Features
@@ -13,7 +17,7 @@ Engineered for **Reims Desktop** (Ubuntu 24.04 LTS / LXQt base), but compatible 
   * macOS release selector (macOS 26 Tahoe, macOS 15 Sequoia, macOS 14 Sonoma).
   * Fine-grained resource allocation for vCPUs, RAM, and disk storage with intuitive sliders.
   * Physical GPU selection for Vulkan acceleration.
-  * Direct downloads of official Apple recovery installers via `reims-desktop-util`.
+  * Direct downloads of Apple recovery installers via `reims-desktop-util`.
 * **Host Health Diagnostics (Doctor Panel):**
   * Live verification of KVM availability (`/dev/kvm`), `/dev/udmabuf` kernel module, Vulkan drivers (NVIDIA/AMD/Intel), and compatible QEMU binary.
 * **Quick Actions:**

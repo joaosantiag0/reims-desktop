@@ -29,7 +29,7 @@
   "vm.actions.settings": "Ajustes",
   "vm.actions.delete": "Eliminar",
   "vm.empty.title": "No se encontraron máquinas virtuales",
-  "vm.empty.desc": "Haga clic en '+ Nueva Máquina Virtual' arriba para descargar el instalador oficial de Apple y configurar su primera VM con aceleración.",
+  "vm.empty.desc": "Haga clic en '+ Nueva Máquina Virtual' arriba para descargar el instalador de Apple y configurar su primera VM con aceleración.",
   "wizard.title": "Crear Nueva VM macOS",
   "wizard.step.release": "1. Versión de macOS",
   "wizard.step.resources": "2. Recursos de la Máquina",

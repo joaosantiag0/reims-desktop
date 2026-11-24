@@ -171,7 +171,7 @@ if [[ -d "${ROOTFS}/etc/calamares/branding/lubuntu" ]]; then
     sed -i 's/bootloaderEntryName: .*/bootloaderEntryName: Reims Desktop/' "${ROOTFS}/etc/calamares/branding/lubuntu/branding.desc" || true
 fi
 
-# Configura atalho oficial do instalador do Reims Desktop (substituindo o lubuntu-calamares.desktop para evitar duplicatas)
+# Configura atalho do instalador do Reims Desktop (substituindo o lubuntu-calamares.desktop para evitar duplicatas)
 mkdir -p "${ROOTFS}/usr/share/applications"
 cat << 'EOF' > "${ROOTFS}/usr/share/applications/lubuntu-calamares.desktop"
 [Desktop Entry]

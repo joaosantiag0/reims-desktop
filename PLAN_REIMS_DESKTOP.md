@@ -1,7 +1,9 @@
 # Reims Desktop: Engineering & Architecture Plan
 
 > **Executive Summary:**  
-> This document details the technical feasibility, software architecture, and complete implementation roadmap for **Reims Desktop**: an ultra-lightweight, bloatware-free Linux distribution based on **Ubuntu 24.04 LTS**, designed for high-performance macOS virtualization with hardware graphics acceleration via [reims-vgpu](https://github.com/steelbrain/reims-vgpu), a modern graphical installer with multi-language support (i18n), comprehensive GPU driver support (NVIDIA, AMD, Intel), and a native Qt GUI application for `reims-desktop-ctl`.
+> This document details the technical feasibility, software architecture, and complete implementation roadmap for **Reims Desktop**: an unofficial, ultra-lightweight, bloatware-free Linux distribution based on **Ubuntu 24.04 LTS**, designed for high-performance macOS virtualization with hardware graphics acceleration via [reims-vgpu](https://github.com/steelbrain/reims-vgpu), a modern graphical installer with multi-language support (i18n), comprehensive GPU driver support (NVIDIA, AMD, Intel), and a native Qt GUI application for `reims-desktop-ctl`.
+>
+> *Disclaimer: Reims Desktop is an independent, unofficial community project and is not affiliated with, sponsored by, or endorsed by Apple Inc. or upstream authors.*
 
 ---
 
@@ -176,7 +178,7 @@ graph TD
    * Supported macOS versions (macOS 26 Tahoe, macOS 15 Sequoia, macOS 14 Sonoma).
    * Smart sliders with upper bounds calculated from host physical RAM and CPU cores.
    * Dedicated GPU selector for Vulkan hardware acceleration.
-   * Live download progress bar for official Apple recovery images via `reims-desktop-util`.
+   * Live download progress bar for Apple recovery images via `reims-desktop-util`.
 3. **Machine Lifecycle Management:**
    * Grid or card view with real-time state.
    * Start VM (launches dedicated accelerated window), graceful ACPI shutdown, forced termination, and terminal console viewer (`reims-desktop-ctl view`).
