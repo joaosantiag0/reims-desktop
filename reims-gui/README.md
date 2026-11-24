@@ -1,41 +1,41 @@
-# Reims Control Center (reims-gui)
+# Reims Desktop Control Center (`reims-desktop`)
 
-Interface gráfica nativa (GUI) para gerenciamento de máquinas virtuais macOS com aceleração gráfica [reims-vgpu](https://github.com/steelbrain/reims-vgpu) através do utilitário `reims-ctl`.
+Native Qt graphical user interface for managing macOS virtual machines with hardware-accelerated graphics via [reims-vgpu](https://github.com/steelbrain/reims-vgpu) and the `reims-desktop-ctl` utility.
 
-Construído para o **ReimsOS** (base Ubuntu 24.04 LTS / LXQt), mas compatível com qualquer distribuição Linux com suporte a KVM e Vulkan.
-
----
-
-## Recursos
-
-* **Gerenciador de VMs:** Listagem visual com status em tempo real (Executando, Desligada, Erro), vCPUs, RAM e vGPU associada.
-* **Assistente de Criação (New VM Wizard):**
-  * Escolha da versão do macOS (macOS 26 Tahoe, macOS 15 Sequoia, macOS 14 Sonoma).
-  * Ajuste de vCPUs, RAM e tamanho de disco com sliders intuitivos.
-  * Seleção de GPU física para aceleração Vulkan.
-  * Download direto de instaladores oficiais da Apple via `reims-util`.
-* **Painel de Diagnóstico (Host Health):**
-  * Verificação em tempo real de KVM (`/dev/kvm`), suporte a `/dev/udmabuf`, drivers Vulkan (NVIDIA/AMD/Intel) e binário QEMU compatível.
-* **Ações Rápidas:**
-  * Iniciar VM (abre janela gráfica dedicada com aceleração gráfica).
-  * Visualizador em terminal (`reims-ctl view`).
-  * Parada suave (ACPI) ou forçada.
-  * Ajuste de configurações da máquina (`reims-ctl set`).
-* **Internacionalização (i18n):**
-  * Suporte nativo completo para **Português do Brasil (pt_BR)**, **Inglês (en_US)** e **Espanhol (es_ES)**, com detecção automática do idioma do sistema e troca dinâmica na barra superior.
-* **Modo Mock / Demonstração:**
-  * Permite rodar e testar a interface mesmo em computadores sem o hardware KVM/Vulkan instalado (`reims-gui --mock`).
+Engineered for **Reims Desktop** (Ubuntu 24.04 LTS / LXQt base), but compatible with any modern Linux distribution supporting KVM and Vulkan.
 
 ---
 
-## Instalação e Execução
+## Features
 
-### Requisitos
+* **Virtual Machine Manager:** Real-time visual status monitoring (Running, Stopped, Error), vCPUs, RAM, and assigned vGPU.
+* **New VM Wizard:**
+  * macOS release selector (macOS 26 Tahoe, macOS 15 Sequoia, macOS 14 Sonoma).
+  * Fine-grained resource allocation for vCPUs, RAM, and disk storage with intuitive sliders.
+  * Physical GPU selection for Vulkan acceleration.
+  * Direct downloads of official Apple recovery installers via `reims-desktop-util`.
+* **Host Health Diagnostics (Doctor Panel):**
+  * Live verification of KVM availability (`/dev/kvm`), `/dev/udmabuf` kernel module, Vulkan drivers (NVIDIA/AMD/Intel), and compatible QEMU binary.
+* **Quick Actions:**
+  * Start VM (launches dedicated window with Vulkan acceleration).
+  * Terminal view (`reims-desktop-ctl view`).
+  * Graceful shutdown (ACPI) or force stop.
+  * Machine configuration adjustments (`reims-desktop-ctl set`).
+* **Internationalization (i18n):**
+  * Full native support for **English (en_US)**, **Portuguese (pt_BR)**, and **Spanish (es_ES)**, with automatic system language detection and dynamic switching in the header.
+* **Mock / Demo Mode:**
+  * Allows UI execution, development, and unit testing on systems without KVM or Vulkan hardware (`reims-desktop --mock`).
+
+---
+
+## Installation & Running
+
+### Requirements
 * Python >= 3.10
 * `PySide6` (Qt 6)
-* `reims-ctl` e `qemu-reims-vgpu` instalados no sistema (ou utilize a flag `--mock`).
+* `reims-desktop-ctl` and `qemu-reims-vgpu` installed on host (or pass `--mock` flag).
 
-### Executando em Ambiente Virtual
+### Virtual Environment Setup
 
 ```bash
 cd reims-gui
@@ -43,31 +43,32 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# Executar a aplicação
+# Run application
 python3 -m reims_gui.main
 
-# Executar em modo mock (simulação para testes de UI)
+# Run in mock mode (simulated host for UI testing)
 python3 -m reims_gui.main --mock
 ```
 
 ---
 
-## Estrutura do Código
+## Source Tree Structure
 
-```
+```text
 reims-gui/
 ├── src/reims_gui/
-│   ├── main.py              # Ponto de entrada da aplicação
+│   ├── main.py              # Application entry point
 │   ├── core/
-│   │   ├── models.py        # Modelos de dados (VmInfo, GpuDevice, DoctorHealth)
-│   │   └── ctl_client.py    # Wrapper assíncrono para o CLI reims-ctl (+ modo Mock)
+│   │   ├── models.py        # Core data models (VmInfo, GpuDevice, DoctorHealth)
+│   │   ├── ctl_client.py    # Async client wrapper for reims-desktop-ctl (+ Mock mode)
+│   │   └── updater.py       # GitHub Releases & Git updater engine
 │   ├── i18n/
-│   │   ├── translator.py    # Gerenciador de traduções com suporte a troca dinâmica
-│   │   └── locales/         # Dicionários de idiomas (pt_BR, en_US, es_ES)
+│   │   ├── translator.py    # Translation manager with dynamic language switching
+│   │   └── locales/         # Translation dictionaries (pt_BR, en_US, es_ES)
 │   └── ui/
-│       ├── main_window.py   # Janela principal
-│       ├── theme.py         # Folhas de estilo modernas para Qt6
-│       ├── widgets/         # Componentes: vm_card, doctor_bar, header
-│       └── dialogs/         # Assistente de criação de VM e diálogo de ajustes
-└── tests/                   # Testes unitários do cliente e i18n
+│       ├── main_window.py   # Main window
+│       ├── theme.py         # Modern Qt6 dark theme stylesheet
+│       ├── widgets/         # UI components: vm_card, doctor_bar, header
+│       └── dialogs/         # New VM wizard and update dialog
+└── tests/                   # Automated unit tests for client, updater, and i18n
 ```

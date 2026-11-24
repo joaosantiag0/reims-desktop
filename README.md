@@ -2,78 +2,78 @@
 
 <div align="center">
   <img src="iso-builder/customization/reims-logo.png" alt="Reims Desktop Logo" width="140" />
-  <h3>Sistema Operacional e Interface Gráfica para Virtualização macOS com Aceleração Vulkan</h3>
-  <p>Construído sobre o Ubuntu 24.04 LTS (Noble) com ambiente ultra-leve LXQt, Calamares e suporte nativo ao <a href="https://github.com/steelbrain/reims-vgpu">reims-vgpu</a>.</p>
+  <h3>A Linux Distribution and Graphical Interface for Hardware-Accelerated macOS Virtualization via Vulkan</h3>
+  <p>Built on Ubuntu 24.04 LTS (Noble) with an ultra-lightweight LXQt desktop, Calamares installer, and native <a href="https://github.com/steelbrain/reims-vgpu">reims-vgpu</a> integration.</p>
 </div>
 
 ---
 
-## 🚀 Visão Geral
+## 🚀 Overview
 
-O **Reims Desktop** é uma distribuição Linux especializada projetada para transformar qualquer PC ou notebook compatível (Intel/AMD + GPUs NVIDIA ou AMD) em uma estação de trabalho de alta performance para virtualização de **macOS** com aceleração de GPU por hardware via **Vulkan** (`/dev/udmabuf` + KVM).
+**Reims Desktop** is a specialized Linux operating system designed to turn any compatible x86_64 PC or laptop (Intel/AMD CPUs with NVIDIA or AMD dedicated GPUs) into a high-performance workstation for virtualizing **macOS** with near-native hardware GPU acceleration through **Vulkan** (`/dev/udmabuf` + KVM).
 
-O projeto elimina bloatware, otimiza o kernel e a pilha gráfica e entrega uma experiência pronta para uso, com instalador gráfico em português, inglês e espanhol.
-
----
-
-## 🛠️ Binários Oficiais (`reims-desktop*`)
-
-Todos os binários do projeto foram padronizados sob o prefixo `reims-desktop*` para facilitar o uso no terminal e automações:
-
-| Binário | Descrição |
-| :--- | :--- |
-| **`reims-desktop`** | Interface gráfica principal em Qt (Reims Desktop Control Center) para gerenciar, criar e executar máquinas virtuais. *(compatível com `reims-gui`)* |
-| **`reims-desktop-ctl`** | Linha de comando para diagnóstico (`doctor`), alocação de GPUs e provisionamento de VMs macOS. *(compatível com `reims-ctl`)* |
-| **`reims-desktop-update`** | Utilitário CLI para verificação e aplicação de atualizações do sistema direto do GitHub Releases ou Git master. *(compatível com `reims-update`)* |
-| **`reims-desktop-util`** | Ferramenta utilitária de suporte a imagens de disco e automação QEMU. *(compatível com `reims-util`)* |
+The system strips away bloatware, tunes the Linux kernel and graphics stack for minimal latency, and provides a turnkey experience with a graphical installer and control center available in English, Portuguese, and Spanish.
 
 ---
 
-## 📦 Estrutura do Repositório
+## 🛠️ Official Binaries (`reims-desktop*`)
+
+All binaries in the project are standardized under the `reims-desktop*` prefix for consistent CLI and automated script usage:
+
+| Binary | Description | Compatibility Alias |
+| :--- | :--- | :--- |
+| **`reims-desktop`** | Main Qt graphical application (Reims Desktop Control Center) to configure, download, and run macOS virtual machines. | `reims-gui` |
+| **`reims-desktop-ctl`** | Command-line interface for host hardware diagnostics (`doctor`), GPU allocation, and VM lifecycle control. | `reims-ctl` |
+| **`reims-desktop-update`** | System updater CLI to check, download, and apply OS component updates from GitHub Releases or Git master. | `reims-update` |
+| **`reims-desktop-util`** | Disk image formatting and official Apple installer download automation utility. | `reims-util` |
+
+---
+
+## 📦 Repository Structure
 
 ```text
 reims-desktop/
-├── reims-gui/          # Aplicação gráfica Qt6/PySide6 (Reims Desktop) com suporte a i18n
-├── packaging/          # Automação de empacotamento Debian (.deb)
-│   ├── templates/      # Estrutura base de reims-core, reims-gui e reims-vgpu
-│   └── scripts/        # Scripts para compilar e gerar os pacotes .deb
-├── iso-builder/        # Pipeline de construção e remasterização da ISO Live CD
-│   ├── config/         # Configurações do Calamares, pacotes essenciais e autostart
-│   ├── customization/  # Logos Plymouth, papéis de parede, touchpad e prompts de boas-vindas
-│   └── scripts/        # Scripts de build da ISO (build_iso.sh, remaster_iso.sh)
-└── .github/workflows/  # CI/CD: Testes automatizados e publicação de releases
+├── reims-gui/          # Qt6/PySide6 Graphical Interface (Reims Desktop) with i18n
+├── packaging/          # Debian packaging automation (.deb files)
+│   ├── templates/      # Base deb structures for reims-core, reims-gui, and reims-vgpu
+│   └── scripts/        # Build scripts to compile and package all .deb artifacts
+├── iso-builder/        # Live CD ISO remastering and build pipeline
+│   ├── config/         # Calamares installer config, essential packages list, autostart
+│   ├── customization/  # Plymouth dark themes, wallpapers, touchpad rules, welcome prompts
+│   └── scripts/        # ISO build scripts (build_iso.sh, remaster_iso.sh)
+└── .github/workflows/  # CI/CD: Automated test verification and GitHub Releases publishing
 ```
 
 ---
 
-## 🔄 Sistema de Atualização Contínua
+## 🔄 Continuous Update System
 
-O **Reims Desktop** possui um mecanismo de atualização integrado diretamente com este repositório público no GitHub:
+**Reims Desktop** includes an integrated update mechanism connected to this public GitHub repository:
 
-1. **Pela Interface Gráfica:**
-   - Clique no botão **"Atualizações"** na barra superior do Reims Desktop.
-   - O aplicativo consulta as releases do GitHub em segundo plano e apresenta as notas da versão com opção de atualização com um clique.
+### 1. Via Graphical Interface
+- Click the **"Updates"** button on the top header of Reims Desktop.
+- The application queries the GitHub Releases API in the background, displays formatted release notes, and downloads/installs the latest packages with a single click.
 
-2. **Pelo Terminal:**
-   ```bash
-   # Verifica se há novas atualizações
-   reims-desktop-update --check
+### 2. Via Command Line
+```bash
+# Check if a new release is available
+reims-desktop-update --check
 
-   # Instala a versão mais recente dos pacotes oficiais
-   reims-desktop-update
+# Download and install the latest official release packages
+reims-desktop-update
 
-   # Ou atualiza diretamente a partir da branch principal do Git
-   reims-desktop-update --git
-   ```
+# Or perform a rolling update directly from the main Git branch
+reims-desktop-update --git
+```
 
 ---
 
-## 🧪 Testes Automatizados
+## 🧪 Automated Testing
 
-O repositório segue regras estritas de qualidade e cobertura de testes automatizados (em conformidade com [agents.md](agents.md)):
+This repository enforces strict code quality and automated test coverage rules (compliant with [agents.md](agents.md)):
 
 ```bash
-# Executa toda a suíte de testes (ISO, Reims Desktop e Empacotamento Debian)
+# Run all test suites (ISO builder, Reims Desktop GUI, and Debian Packaging)
 python3 -m unittest discover -s iso-builder/tests -p "test_*.py"
 PYTHONPATH=reims-gui/src python3 -m unittest discover -s reims-gui/tests -p "test_*.py"
 python3 -m unittest discover -s packaging/tests -p "test_*.py"
@@ -81,6 +81,22 @@ python3 -m unittest discover -s packaging/tests -p "test_*.py"
 
 ---
 
-## 📄 Licença
+## 💻 Local GUI Development
 
-Distribuído sob licença de código aberto. Veja os arquivos de controle para os detalhes de cada componente.
+To run the Reims Desktop interface locally:
+
+```bash
+cd reims-gui
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Launch application (with mock mode support for systems without KVM/Vulkan)
+python3 -m reims_gui.main --mock
+```
+
+---
+
+## 📄 License
+
+Distributed under open-source licenses. Refer to individual component packaging control files and license headers for details.

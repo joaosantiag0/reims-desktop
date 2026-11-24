@@ -3,12 +3,12 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "reims-gui"
+name = "reims-desktop"
 version = "0.1.0"
-description = "Graphical User Interface for reims-ctl and reims-vgpu on ReimsOS / Ubuntu"
+description = "Graphical User Interface for reims-desktop-ctl and reims-vgpu on Reims Desktop / Linux"
 readme = "README.md"
 authors = [
-    { name = "ReimsOS Team" }
+    { name = "Reims Desktop Team" }
 ]
 license = { text = "GPL-2.0-or-later" }
 requires-python = ">=3.10"
@@ -17,6 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
+reims-desktop = "reims_gui.main:main"
 reims-gui = "reims_gui.main:main"
 
 [tool.setuptools.packages.find]
