@@ -110,6 +110,16 @@ Reims Desktop packages are published directly to an official APT repository host
 sudo apt update && sudo apt upgrade
 ```
 
+The repository (`noble/main`) is rebuilt and signed on every push to
+`development`/`main`/`master` (in addition to `v*` tags) by the
+`apt-repo.yml` workflow, which publishes the signed metadata (`InRelease`,
+`Release.gpg`) to https://joaosantiag0.github.io/reims-desktop. The signing
+key lives in the `REIMS_APT_PRIVATE_KEY` GitHub secret; the matching public
+key is shipped by `reims-core` as
+`/usr/share/keyrings/reims-desktop-archive-keyring.gpg` (already referenced
+by the pre-configured `reims.list` source, replacing the old
+`[trusted=yes]` setup).
+
 ---
 
 ## ⚡ High-Speed Hardware Sync & Direct Boot
