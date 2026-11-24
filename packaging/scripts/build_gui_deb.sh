@@ -14,12 +14,12 @@ rm -rf "${STAGE_DIR}"
 mkdir -p "${STAGE_DIR}" "${DIST_DIR}"
 
 # Copia template do pacote
-cp -r "${REPO_ROOT}/packaging/templates/reims-gui/"* "${STAGE_DIR}/"
+cp -R "${REPO_ROOT}/packaging/templates/reims-gui/." "${STAGE_DIR}/"
 
 # Instala o código Python do reims_gui em dist-packages do pacote
 PYTHON_DEST="${STAGE_DIR}/usr/lib/python3/dist-packages/reims_gui"
 mkdir -p "${PYTHON_DEST}"
-cp -r "${REPO_ROOT}/reims-gui/src/reims_gui/"* "${PYTHON_DEST}/"
+cp -R "${REPO_ROOT}/reims-gui/src/reims_gui/." "${PYTHON_DEST}/"
 
 # Garante permissões de execução nos scripts
 chmod 755 "${STAGE_DIR}/DEBIAN"
