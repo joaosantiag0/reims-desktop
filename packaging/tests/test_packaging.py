@@ -88,6 +88,7 @@ class TestDebianPackaging(unittest.TestCase):
                 names = tar.getnames()
                 self.assertTrue(any("reims-desktop.desktop" in n for n in names))
                 self.assertTrue(any("reims-desktop.svg" in n for n in names))
+                self.assertTrue(any("reims-desktop.png" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-desktop" in n for n in names))
                 self.assertTrue(any("usr/bin/reims-gui" in n for n in names))
                 self.assertTrue(any("dist-packages/reims_gui" in n for n in names))

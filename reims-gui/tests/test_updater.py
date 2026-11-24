@@ -134,13 +134,22 @@ class TestSystemUpdater(unittest.TestCase):
     def test_update_dialog_mock(self):
         os.environ["REIMS_MOCK_UPDATER"] = "1"
         try:
+            from reims_gui.qt_compat import QT_BACKEND, QtWidgets
+            if QT_BACKEND != "MockQt" and hasattr(QtWidgets, "QApplication"):
+                app = QtWidgets.QApplication.instance()
+                if not app:
+                    app = QtWidgets.QApplication([])
+
             release = self.updater.check_for_updates()
             self.assertIsNotNone(release)
             dlg = UpdateDialog(release=release, updater=self.updater)
             self.assertIsNotNone(dlg)
             # Simula clique no botão de atualizar
             dlg._handle_update()
-            self.assertIn("sucesso", dlg.lbl_status.text.lower())
+            status_text = dlg.lbl_status.text() if callable(getattr(dlg.lbl_status, "text", None)) else dlg.lbl_status.text
+            self.assertIn("sucesso", str(status_text).lower())
+            if hasattr(dlg, "close"):
+                dlg.close()
         finally:
             os.environ.pop("REIMS_MOCK_UPDATER", None)
 

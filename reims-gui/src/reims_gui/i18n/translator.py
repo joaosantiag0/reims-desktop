@@ -28,7 +28,7 @@ class Translator:
 
     def _detect_system_language(self) -> str:
         try:
-            sys_lang, _ = locale.getdefaultlocale()
+            sys_lang = os.environ.get("LANG") or (locale.getlocale()[0] if hasattr(locale, "getlocale") else None)
             if sys_lang:
                 if sys_lang.startswith("pt"):
                     return "pt_BR"

@@ -51,15 +51,37 @@ if not QT_BACKEND:
         def __call__(cls, *args: Any, **kwargs: Any) -> Any:
             return super().__call__(*args, **kwargs)
 
+    class _MockStr(str):
+        def __call__(self) -> str:
+            return str(self)
+
     class _MockQtObject(metaclass=_MockMeta):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
-            self.text = ""
+            self.text = _MockStr("")
         def setText(self, text: str) -> None:
-            self.text = text
+            self.text = _MockStr(text)
         def __getattr__(self, name: str) -> Any:
             return _MockQtObject()
         def __call__(self, *args: Any, **kwargs: Any) -> Any:
             return _MockQtObject()
+        def __ge__(self, other: Any) -> bool:
+            return True
+        def __gt__(self, other: Any) -> bool:
+            return True
+        def __le__(self, other: Any) -> bool:
+            return True
+        def __lt__(self, other: Any) -> bool:
+            return False
+        def __eq__(self, other: Any) -> bool:
+            return True
+        def __bool__(self) -> bool:
+            return True
+        def __int__(self) -> int:
+            return 0
+        def findData(self, *args: Any, **kwargs: Any) -> int:
+            return 0
+        def windowTitle(self) -> str:
+            return "Reims Control Center"
 
     class _MockQtCore:
         QObject = _MockQtObject

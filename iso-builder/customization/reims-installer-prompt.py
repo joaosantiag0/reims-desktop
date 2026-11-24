@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+from pathlib import Path
 import subprocess
 import sys
 from typing import Any, Callable
@@ -272,6 +273,13 @@ if QT_AVAILABLE:
             self.resize(860, 540)
             self.setStyleSheet(DARK_STYLESHEET)
 
+            # Window icon
+            logo_file = Path("/usr/share/pixmaps/reims-logo.png")
+            if not logo_file.exists():
+                logo_file = Path(__file__).resolve().parent / "reims-logo.png"
+            if logo_file.exists():
+                self.setWindowIcon(QtGui.QIcon(str(logo_file)))
+
             self._setup_ui()
             self._update_texts()
 
@@ -289,6 +297,23 @@ if QT_AVAILABLE:
             header.setObjectName("headerBox")
             header_layout = QtWidgets.QHBoxLayout(header)
             header_layout.setContentsMargins(16, 12, 16, 12)
+
+            # Logo icon in header
+            logo_file = Path("/usr/share/pixmaps/reims-logo.png")
+            if not logo_file.exists():
+                logo_file = Path(__file__).resolve().parent / "reims-logo.png"
+            if logo_file.exists():
+                lbl_icon = QtWidgets.QLabel()
+                lbl_icon.setObjectName("headerLogoLabel")
+                pix = QtGui.QPixmap(str(logo_file))
+                if not pix.isNull():
+                    aspect_mode = getattr(Qt, "AspectRatioMode", None)
+                    keep_aspect = getattr(aspect_mode, "KeepAspectRatio", getattr(Qt, "KeepAspectRatio", 1))
+                    transform_mode = getattr(Qt, "TransformationMode", None)
+                    smooth_trans = getattr(transform_mode, "SmoothTransformation", getattr(Qt, "SmoothTransformation", 1))
+                    lbl_icon.setPixmap(pix.scaled(44, 44, keep_aspect, smooth_trans))
+                    header_layout.addWidget(lbl_icon)
+                    header_layout.addSpacing(8)
 
             # Logo & Titles
             title_vbox = QtWidgets.QVBoxLayout()

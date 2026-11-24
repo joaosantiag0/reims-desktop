@@ -1,8 +1,9 @@
 from __future__ import annotations
 import logging
+from pathlib import Path
 from typing import List, Optional
 
-from reims_gui.qt_compat import Qt, QTimer, QtWidgets
+from reims_gui.qt_compat import QtGui, Qt, QTimer, QtWidgets
 QComboBox = QtWidgets.QComboBox
 QFrame = QtWidgets.QFrame
 QGridLayout = QtWidgets.QGridLayout
@@ -40,6 +41,15 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(t("app.title"))
         self.resize(880, 620)
         self.setMinimumSize(700, 500)
+
+        # Set application window icon
+        icon_path = Path(__file__).resolve().parent.parent / "assets" / "reims-logo.png"
+        if not icon_path.exists():
+            sys_icon = Path("/usr/share/pixmaps/reims-logo.png")
+            if sys_icon.exists():
+                icon_path = sys_icon
+        if icon_path.exists():
+            self.setWindowIcon(QtGui.QIcon(str(icon_path)))
 
         self._init_ui()
         self.translator.subscribe(self._on_language_changed)
@@ -87,7 +97,7 @@ class MainWindow(QMainWindow):
 
         # Set active index based on current language
         curr_idx = self.cmb_lang.findData(self.translator.current_language)
-        if curr_idx >= 0:
+        if isinstance(curr_idx, int) and curr_idx >= 0:
             self.cmb_lang.setCurrentIndex(curr_idx)
         self.cmb_lang.currentIndexChanged.connect(self._handle_language_selection)
         header_layout.addWidget(self.cmb_lang)

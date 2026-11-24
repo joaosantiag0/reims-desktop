@@ -29,6 +29,8 @@ chmod 755 "${STAGE_DIR}/usr/bin/"*
 # Permissões nos arquivos estáticos
 chmod 644 "${STAGE_DIR}/usr/share/applications/"*.desktop
 chmod 644 "${STAGE_DIR}/usr/share/icons/hicolor/scalable/apps/"*.svg
+find "${STAGE_DIR}/usr/share/icons" -type f -exec chmod 644 {} +
+find "${STAGE_DIR}/usr/share/pixmaps" -type f -exec chmod 644 {} +
 
 # Executa construtor de pacote
 OUTPUT_DEB="${DIST_DIR}/reims-gui_0.1.0_all.deb"
