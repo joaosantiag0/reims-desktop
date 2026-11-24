@@ -19,7 +19,9 @@ class TestIsoRemastering(unittest.TestCase):
 
     def test_wallpaper_exists_and_valid_svg(self):
         wp = self.custom_dir / "wallpaper.svg"
+        wp_png = self.custom_dir / "reims-wallpaper.png"
         self.assertTrue(wp.exists(), "wallpaper.svg not found")
+        self.assertTrue(wp_png.exists(), "reims-wallpaper.png not found")
         content = wp.read_text(encoding="utf-8")
         self.assertIn("<svg", content)
         self.assertIn("REIMS OS", content)

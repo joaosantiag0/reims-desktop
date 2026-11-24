@@ -133,6 +133,9 @@ cp "${CUSTOM_DIR}/remove-packages.list" "${ROOTFS}/tmp/remove-packages.list"
 # Injeta Wallpaper do Reims Desktop
 mkdir -p "${ROOTFS}/usr/share/backgrounds"
 cp "${CUSTOM_DIR}/wallpaper.svg" "${ROOTFS}/usr/share/backgrounds/reims-wallpaper.svg"
+if [[ -f "${CUSTOM_DIR}/reims-wallpaper.png" ]]; then
+    cp "${CUSTOM_DIR}/reims-wallpaper.png" "${ROOTFS}/usr/share/backgrounds/reims-wallpaper.png"
+fi
 
 # Injeta Configurações do LXQt (Dark Theme e Wallpaper)
 for SKEL_DIR in "${ROOTFS}/etc/skel" "${ROOTFS}/home/lubuntu" "${ROOTFS}/home/reims"; do
