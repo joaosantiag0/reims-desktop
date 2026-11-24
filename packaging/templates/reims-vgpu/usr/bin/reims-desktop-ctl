@@ -9,6 +9,56 @@ VERSION="0.1.0"
 VMS_BASE_DIR="${HOME}/.local/share/reims-ctl/vms"
 mkdir -p "${VMS_BASE_DIR}"
 
+ensure_start_script() {
+    local vm_dir="$1"
+    local config_file="${vm_dir}/config.json"
+    if [[ ! -f "${config_file}" ]]; then
+        return 0
+    fi
+
+    cat << 'EOF_START' > "${vm_dir}/start.sh"
+#!/usr/bin/env bash
+set -euo pipefail
+export DISPLAY="${DISPLAY:-:0}"
+VM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VM_NAME="$(basename "${VM_DIR}")"
+
+QEMU_BIN=""
+if [[ -x "/usr/lib/reims/qemu-system-x86_64" ]] && file -bL "/usr/lib/reims/qemu-system-x86_64" 2>/dev/null | grep -q "ELF"; then
+    QEMU_BIN="/usr/lib/reims/qemu-system-x86_64"
+else
+    QEMU_BIN="$(command -v qemu-system-x86_64 || echo "/usr/bin/qemu-system-x86_64")"
+fi
+
+CONFIG_FILE="${VM_DIR}/config.json"
+CPUS="$(grep -o '"cpus": [0-9]*' "${CONFIG_FILE}" 2>/dev/null | awk '{print $2}' || echo 4)"
+MEMORY_MIB="$(grep -o '"memory_mib": [0-9]*' "${CONFIG_FILE}" 2>/dev/null | awk '{print $2}' || echo 8192)"
+DISK_PATH="${VM_DIR}/disk.qcow2"
+INSTALLER_PATH="$(grep -o '"installer": "[^"]*"' "${CONFIG_FILE}" 2>/dev/null | cut -d'"' -f4 || true)"
+
+QEMU_ARGS=(
+    -name "${VM_NAME}"
+    -enable-kvm
+    -m "${MEMORY_MIB}"
+    -smp "${CPUS}"
+    -vga virtio
+    -drive "file=${DISK_PATH},format=qcow2,if=virtio"
+)
+
+# Anexa a ISO de instalação fornecida pelo usuário (se existir) e tenta
+# inicializar por ela primeiro, depois pelo disco.
+if [[ -n "${INSTALLER_PATH}" && -f "${INSTALLER_PATH}" ]]; then
+    QEMU_ARGS+=(
+        -drive "file=${INSTALLER_PATH},media=cdrom,readonly=on"
+        -boot order=dc
+    )
+fi
+
+exec "${QEMU_BIN}" "${QEMU_ARGS[@]}"
+EOF_START
+    chmod +x "${vm_dir}/start.sh"
+}
+
 CMD="${1:-help}"
 shift || true
 
@@ -26,7 +76,6 @@ case "${CMD}" in
         ;;
 
     gpus)
-        echo "reims-desktop-ctl (Reims Desktop build ${VERSION})"
         FOUND_GPU=false
         if command -v lspci >/dev/null 2>&1; then
             while IFS= read -r line; do
@@ -191,21 +240,7 @@ case "${CMD}" in
 }
 EOF
 
-        cat << EOF > "${VM_DIR}/start.sh"
-#!/usr/bin/env bash
-set -euo pipefail
-QEMU_BIN="/usr/lib/reims/qemu-system-x86_64"
-if [[ ! -x "\${QEMU_BIN}" ]]; then
-    QEMU_BIN="\$(command -v qemu-system-x86_64 || echo "qemu-system-x86_64")"
-fi
-exec "\${QEMU_BIN}" \\
-    -enable-kvm \\
-    -m "${MEMORY_MIB}" \\
-    -smp "${CPUS}" \\
-    -device virtio-vga \\
-    -drive "file=${DISK_PATH},format=qcow2,if=virtio"
-EOF
-        chmod +x "${VM_DIR}/start.sh"
+        ensure_start_script "${VM_DIR}"
         sleep 0.5
 
         echo "==> [4/4] Máquina virtual '${VM_NAME}' criada com sucesso!"
@@ -213,6 +248,7 @@ EOF
 
         if [[ "${START_NOW}" == "true" ]]; then
             echo "==> Iniciando máquina virtual..."
+            export DISPLAY="${DISPLAY:-:0}"
             nohup "${VM_DIR}/start.sh" > "${VM_DIR}/vm.log" 2>&1 &
             echo $! > "${VM_DIR}/pid.txt"
         fi
@@ -229,12 +265,13 @@ EOF
             echo "Erro: VM '${VM_NAME}' não encontrada em ${VMS_BASE_DIR}." >&2
             exit 1
         fi
+        ensure_start_script "${VM_DIR}"
         echo "==> Iniciando VM '${VM_NAME}'..."
-        if [[ -x "${VM_DIR}/start.sh" ]]; then
-            nohup "${VM_DIR}/start.sh" > "${VM_DIR}/vm.log" 2>&1 &
-            echo $! > "${VM_DIR}/pid.txt"
-            echo "VM '${VM_NAME}' iniciada com PID $(cat "${VM_DIR}/pid.txt")."
-        fi
+        export DISPLAY="${DISPLAY:-:0}"
+        nohup "${VM_DIR}/start.sh" > "${VM_DIR}/vm.log" 2>&1 &
+        PID=$!
+        echo "${PID}" > "${VM_DIR}/pid.txt"
+        echo "VM '${VM_NAME}' iniciada com PID ${PID}."
         ;;
 
     stop)

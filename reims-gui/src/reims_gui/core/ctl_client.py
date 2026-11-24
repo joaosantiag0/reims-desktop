@@ -105,7 +105,7 @@ class ReimsCtlClient:
             gpus: List[GpuDevice] = []
             for line in res.stdout.strip().splitlines():
                 line = line.strip()
-                if not line or line.startswith("#"):
+                if not line or not line.startswith("["):
                     continue
                 # Format: [vendor:device] Name
                 parts = line.split(maxsplit=1)
@@ -164,8 +164,11 @@ class ReimsCtlClient:
             return False
 
         try:
-            # Launch asynchronously
-            subprocess.Popen([self.binary_path, "start", name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            env = dict(os.environ)
+            if "DISPLAY" not in env or not env["DISPLAY"]:
+                env["DISPLAY"] = ":0"
+            res = subprocess.run([self.binary_path, "start", name], check=True, timeout=15, env=env, capture_output=True, text=True)
+            logger.info("start_vm output: %s", res.stdout)
             return True
         except Exception as e:
             logger.error(f"Failed to start VM {name}: {e}")

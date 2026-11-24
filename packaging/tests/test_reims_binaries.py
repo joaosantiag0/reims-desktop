@@ -101,6 +101,46 @@ class TestReimsBinariesPackaging(unittest.TestCase):
             vms_after = json.loads(res_list_after.stdout)
             self.assertEqual(len(vms_after), 0)
 
+    def test_reims_desktop_ctl_start_script_installer_iso(self):
+        """start.sh deve anexar a ISO do instalador (-cdrom) quando configurada."""
+        ctl_script = self.repo_root / "packaging" / "templates" / "reims-vgpu" / "usr" / "bin" / "reims-desktop-ctl"
+        os.chmod(ctl_script, 0o755)
+
+        with tempfile.TemporaryDirectory() as fake_home:
+            env = dict(os.environ, HOME=fake_home)
+            fake_iso = Path(fake_home) / "Install-macOS.iso"
+            fake_iso.write_bytes(b"\x00" * 1024)  # ISO vazia, apenas para existência do arquivo
+
+            res_create = subprocess.run(
+                [str(ctl_script), "create", "Iso-VM", "--cpus=2", "--memory-mib=4096",
+                 "--disk-gb=20", "--macos=sequoia", f"--installer={fake_iso}"],
+                capture_output=True, text=True, env=env,
+            )
+            self.assertEqual(res_create.returncode, 0, f"create failed: {res_create.stderr}")
+
+            start_sh = Path(fake_home) / ".local/share/reims-ctl/vms/Iso-VM/start.sh"
+            self.assertTrue(start_sh.exists(), "start.sh was not generated")
+            content = start_sh.read_text()
+            self.assertIn("media=cdrom", content, "start.sh does not attach the installer ISO")
+            self.assertIn("-boot order=dc", content)
+
+            # config.json deve registrar a ISO informada
+            config_json = Path(fake_home) / ".local/share/reims-ctl/vms/Iso-VM/config.json"
+            self.assertIn(str(fake_iso), config_json.read_text())
+
+            # VM sem instalador configurado não deve anexar cdrom
+            res_create_plain = subprocess.run(
+                [str(ctl_script), "create", "Plain-VM", "--cpus=2", "--memory-mib=4096",
+                 "--disk-gb=20", "--macos=sequoia"],
+                capture_output=True, text=True, env=env,
+            )
+            self.assertEqual(res_create_plain.returncode, 0, f"create failed: {res_create_plain.stderr}")
+
+            start_plain = Path(fake_home) / ".local/share/reims-ctl/vms/Plain-VM/config.json"
+            self.assertTrue(start_plain.exists())
+            # Sem instalador, a config grava campo vazio (o start.sh ignora o cdrom em runtime)
+            self.assertIn('"installer": ""', start_plain.read_text())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -76,11 +76,16 @@ EOF
     ln -sf reims-desktop-ctl "${STAGE_DIR}/usr/bin/reims-ctl"
     ln -sf reims-desktop-util "${STAGE_DIR}/usr/bin/reims-util"
 
-    cat << 'EOF' > "${STAGE_DIR}/usr/lib/reims/qemu-system-x86_64"
+    if [[ -x "/usr/bin/qemu-system-x86_64" ]]; then
+        ln -sf /usr/bin/qemu-system-x86_64 "${STAGE_DIR}/usr/lib/reims/qemu-system-x86_64"
+    else
+        cat << 'EOF' > "${STAGE_DIR}/usr/lib/reims/qemu-system-x86_64"
 #!/usr/bin/env bash
 set -euo pipefail
 echo "QEMU emulator version 9.0.0 (qemu-reims-vgpu)"
 EOF
+        chmod +x "${STAGE_DIR}/usr/lib/reims/qemu-system-x86_64"
+    fi
 
     touch "${STAGE_DIR}/usr/lib/reims/libreims_vgpu.so"
 fi
