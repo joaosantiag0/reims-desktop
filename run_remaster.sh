@@ -12,9 +12,13 @@ if ! mountpoint -q /mnt/installer; then
     mount /dev/sda1 /mnt/installer
 fi
 
-# 2. Executa a remasterização gerando a ISO no NVMe (alta velocidade)
+# 2. Executa a compilação dos pacotes .deb com assets atualizados
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
+echo "==> Compilando pacotes .deb com assets transparentes atualizados..."
+./packaging/scripts/build_all.sh
+
+# 3. Executa a remasterização gerando a ISO no NVMe (alta velocidade)
 mkdir -p dist
 OUTPUT_ISO="${SCRIPT_DIR}/dist/reims-os-custom.iso"
 rm -f "${OUTPUT_ISO}"

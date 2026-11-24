@@ -129,6 +129,7 @@ cp -L /etc/resolv.conf "${ROOTFS}/etc/resolv.conf"
 mkdir -p "${ROOTFS}/tmp/reims-pkgs"
 cp "${DIST_DIR}"/*.deb "${ROOTFS}/tmp/reims-pkgs/"
 cp "${CUSTOM_DIR}/remove-packages.list" "${ROOTFS}/tmp/remove-packages.list"
+cp "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/tmp/reims-logo.png"
 
 # Injeta Wallpaper do Reims Desktop
 mkdir -p "${ROOTFS}/usr/share/backgrounds"
@@ -233,6 +234,8 @@ chmod +x "${ROOTFS}/usr/share/applications/lubuntu-calamares.desktop"
 for SKEL_DIR in "${ROOTFS}/etc/skel" "${ROOTFS}/home/lubuntu" "${ROOTFS}/home/reims"; do
     if [[ -d "${SKEL_DIR}" ]]; then
         mkdir -p "${SKEL_DIR}/Desktop"
+        # Limpa atalhos antigos com ícones brancos do Calamares/Lubuntu
+        rm -f "${SKEL_DIR}/Desktop"/*calamares*.desktop "${SKEL_DIR}/Desktop"/*install*.desktop "${SKEL_DIR}/Desktop"/*lubuntu*.desktop 2>/dev/null || true
         cp "${ROOTFS}/usr/share/applications/lubuntu-calamares.desktop" "${SKEL_DIR}/Desktop/lubuntu-calamares.desktop"
         chmod +x "${SKEL_DIR}/Desktop/lubuntu-calamares.desktop"
         chown -R 1000:1000 "${SKEL_DIR}/Desktop" 2>/dev/null || true
@@ -246,6 +249,10 @@ echo "Reims Desktop 24.04 LTS - Release amd64" > "${STAGE_DIR}/iso/.disk/info"
 echo "==> Injetando temas de boot e Plymouth do Reims Desktop..."
 mkdir -p "${ROOTFS}/usr/share/pixmaps"
 cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/pixmaps/reims-logo.png"
+cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/pixmaps/reims-desktop.png"
+cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/pixmaps/reims-gui.png"
+cp -v "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/pixmaps/calamares.png" 2>/dev/null || true
+find "${ROOTFS}/usr/share/icons" -name "*calamares*" -exec cp -vf "${CUSTOM_DIR}/reims-logo.png" {} + 2>/dev/null || true
 
 if [[ -f "${CUSTOM_DIR}/reims-logo.png" ]]; then
     # Substitui logos padrão do sistema
@@ -357,22 +364,31 @@ echo "==> Atualizando repositórios e instalando pacotes do Reims Desktop..."
 apt-get update -y || true
 dpkg -i /tmp/reims-pkgs/*.deb || apt-get install -f -y --fix-missing
 
-# 3. Atalho do Reims Control Center na area de trabalho do live user
+# 3. Atalhos do Reims Desktop na area de trabalho do live user
 for DESKTOP_DIR in /etc/skel/Desktop /home/lubuntu/Desktop /home/reims/Desktop; do
     if [ -d "$DESKTOP_DIR" ]; then
-        cp /usr/share/applications/reims-gui.desktop "$DESKTOP_DIR/"
-        chmod +x "$DESKTOP_DIR/reims-gui.desktop"
+        rm -f "$DESKTOP_DIR"/reims*.desktop 2>/dev/null || true
+        cp /usr/share/applications/reims-desktop.desktop "$DESKTOP_DIR/" 2>/dev/null || cp /usr/share/applications/reims-gui.desktop "$DESKTOP_DIR/"
+        chmod +x "$DESKTOP_DIR"/*.desktop
         chown -R 1000:1000 "$DESKTOP_DIR" 2>/dev/null || true
     fi
 done
 
-# 4. Atualiza initramfs com os novos icones e splash do Plymouth
+# 4. Garante sobreescrita dos assets de marca transparentes sobre pacotes instalados
+if [ -f /tmp/reims-logo.png ]; then
+    cp -vf /tmp/reims-logo.png /usr/share/pixmaps/reims-logo.png 2>/dev/null || true
+    cp -vf /tmp/reims-logo.png /usr/share/pixmaps/reims-desktop.png 2>/dev/null || true
+    cp -vf /tmp/reims-logo.png /usr/share/pixmaps/reims-gui.png 2>/dev/null || true
+    cp -vf /tmp/reims-logo.png /usr/lib/python3/dist-packages/reims_gui/assets/reims-logo.png 2>/dev/null || true
+fi
+
+# 5. Atualiza initramfs com os novos icones e splash do Plymouth
 echo "==> Atualizando initramfs com a identidade visual do Reims Desktop..."
 KERNEL_VER=$(ls /lib/modules 2>/dev/null | tail -n 1 || uname -r)
 rm -f /boot/initrd.img*
 update-initramfs -c -k "${KERNEL_VER}" || update-initramfs -u || true
 
-# 5. Limpeza de cache
+# 6. Limpeza de cache
 apt-get clean
 rm -rf /tmp/*
 EOF
@@ -385,6 +401,15 @@ if [[ -f "${ROOTFS}/etc/resolv.conf.bak" ]]; then
     mv -f "${ROOTFS}/etc/resolv.conf.bak" "${ROOTFS}/etc/resolv.conf"
 else
     rm -f "${ROOTFS}/etc/resolv.conf"
+fi
+
+# Reforço pós-chroot de todos os assets transparentes
+cp -vf "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/pixmaps/reims-logo.png"
+cp -vf "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/pixmaps/reims-desktop.png"
+cp -vf "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/pixmaps/reims-gui.png"
+cp -vf "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/share/pixmaps/calamares.png" 2>/dev/null || true
+if [[ -d "${ROOTFS}/usr/lib/python3/dist-packages/reims_gui/assets" ]]; then
+    cp -vf "${CUSTOM_DIR}/reims-logo.png" "${ROOTFS}/usr/lib/python3/dist-packages/reims_gui/assets/reims-logo.png"
 fi
 
 # Sincroniza initrd e vmlinuz se um novo kernel/initrd real tiver sido gerado no chroot
