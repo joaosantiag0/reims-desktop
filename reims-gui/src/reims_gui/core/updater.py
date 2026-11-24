@@ -57,6 +57,7 @@ class SystemUpdater:
     ) -> None:
         self.repo = repo or os.environ.get("REIMS_GITHUB_REPO", DEFAULT_REPO)
         self.current_version = current_version or self._detect_current_version()
+        self.last_check_error: Optional[str] = None
 
     @staticmethod
     def _detect_current_version() -> str:
@@ -184,11 +185,14 @@ class SystemUpdater:
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 logger.warning("Nenhuma release encontrada no repositório %s", self.repo)
+                self.last_check_error = f"Nenhuma release encontrada (HTTP 404) no repositório {self.repo}"
             else:
                 logger.error("Erro HTTP ao consultar GitHub Releases: %s", e)
+                self.last_check_error = f"Erro HTTP {e.code}: {e.reason}"
             return None
         except Exception as e:
             logger.error("Falha ao verificar atualizações do ReimsOS: %s", e)
+            self.last_check_error = str(e)
             return None
 
     def download_assets(
@@ -334,23 +338,26 @@ class SystemUpdater:
         self,
         repo_url: Optional[str] = None,
         branch: str = "main",
+        commit: Optional[str] = None,
         dry_run: bool = False,
     ) -> Tuple[bool, str]:
-        """Atualiza componentes do sistema clonando/puxando a branch main/development do GitHub."""
+        """Atualiza componentes do sistema clonando/puxando a branch ou commit especificado do GitHub."""
         git_url = repo_url or f"https://github.com/{self.repo}.git"
+        target_ref = commit if commit else branch
 
         if dry_run or os.environ.get("REIMS_MOCK_UPDATER") == "1":
-            logger.info("[MODO SIMULAÇÃO] Atualização git de %s (%s)", git_url, branch)
-            return True, f"Simulação de atualização via git concluída ({git_url})"
+            logger.info("[MODO SIMULAÇÃO] Atualização git de %s (ref: %s)", git_url, target_ref)
+            return True, f"Simulação de atualização via git concluída ({git_url} @ {target_ref})"
 
         work_dir = Path("/tmp/reims-git-update")
         try:
+            if work_dir.exists() and not (work_dir / ".git").exists():
+                shutil.rmtree(work_dir)
+
             if not (work_dir / ".git").exists():
                 logger.info("Clonando repositório %s para %s...", git_url, work_dir)
-                if work_dir.exists():
-                    shutil.rmtree(work_dir)
                 subprocess.run(
-                    ["git", "clone", "--depth=1", "-b", branch, git_url, str(work_dir)],
+                    ["git", "clone", git_url, str(work_dir)],
                     check=True,
                     capture_output=True,
                     text=True,
@@ -358,23 +365,63 @@ class SystemUpdater:
             else:
                 logger.info("Puxando atualizações do git em %s...", work_dir)
                 subprocess.run(
-                    ["git", "-C", str(work_dir), "pull", "--ff-only"],
+                    ["git", "-C", str(work_dir), "fetch", "--all", "--tags", "--prune"],
                     check=True,
                     capture_output=True,
                     text=True,
                 )
 
+            # Alterna para branch ou commit desejado
+            logger.info("Alternando para o target git: %s...", target_ref)
+            subprocess.run(
+                ["git", "-C", str(work_dir), "checkout", target_ref],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            # Se for uma branch (não um commit fixo), garante sincronização com a ponta do origin
+            if not commit:
+                try:
+                    subprocess.run(
+                        ["git", "-C", str(work_dir), "pull", "--ff-only", "origin", branch],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                except subprocess.CalledProcessError:
+                    subprocess.run(
+                        ["git", "-C", str(work_dir), "reset", "--hard", f"origin/{branch}"],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+
+            # Obtém hash do commit atual
+            rev_res = subprocess.run(
+                ["git", "-C", str(work_dir), "rev-parse", "--short", "HEAD"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            head_commit = rev_res.stdout.strip() if rev_res.returncode == 0 else target_ref
+
             # Executa build e empacotamento local se o script estiver presente
             build_script = work_dir / "packaging" / "scripts" / "build_all.sh"
             if build_script.exists():
-                logger.info("Recompilando pacotes do repositório clonado...")
-                subprocess.run([str(build_script)], check=True, cwd=str(work_dir))
+                logger.info("Recompilando pacotes do repositório clonado no commit %s...", head_commit)
+                os.chmod(build_script, 0o755)
+                subprocess.run([str(build_script)], check=True, cwd=str(work_dir), capture_output=True, text=True)
                 debs = list((work_dir / "dist").glob("*.deb"))
                 if debs:
                     return self.install_debs(debs, dry_run=dry_run)
 
-            return True, "Repositório git sincronizado com sucesso!"
+            return True, f"Repositório git sincronizado com sucesso no commit {head_commit} ({target_ref})!"
 
+        except subprocess.CalledProcessError as e:
+            err_msg = (e.stderr or e.stdout or str(e)).strip()
+            logger.error("Erro durante atualização via git: %s", err_msg)
+            return False, f"Falha no git: {err_msg}"
         except Exception as e:
             logger.error("Erro durante atualização via git: %s", e)
             return False, str(e)

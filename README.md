@@ -97,7 +97,10 @@ reims-desktop-update --full
 reims-desktop-update --git
 
 # Or pull and compile the cutting-edge development branch
-reims-desktop-update --git --branch development
+reims-desktop-update --branch development
+
+# Or checkout and build a specific commit
+reims-desktop-update --commit <commit_hash>
 ```
 
 ### 4. Via Native Ubuntu APT Repository

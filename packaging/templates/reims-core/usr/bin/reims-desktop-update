@@ -4,7 +4,9 @@
 Usage:
   reims-desktop-update             Check and install available updates
   reims-desktop-update --check     Only check if new versions are available
-  reims-desktop-update --git       Update directly from Git main branch
+  reims-desktop-update --git       Update directly from Git repository
+  reims-desktop-update --branch <b Update from a specific Git branch (e.g. development)
+  reims-desktop-update --commit <c Update to a specific Git commit hash
   reims-desktop-update --yes       Apply updates without interactive confirmation
   reims-desktop-update --dry-run   Simulate update without modifying the system
 """
@@ -48,7 +50,7 @@ def main() -> int:
     parser.add_argument(
         "--git",
         action="store_true",
-        help="Update directly from public Git repository main branch",
+        help="Update directly from public Git repository",
     )
     parser.add_argument(
         "-s", "--system",
@@ -61,10 +63,16 @@ def main() -> int:
         help="Update both Reims Desktop components and Ubuntu OS base packages",
     )
     parser.add_argument(
-        "--branch",
+        "-b", "--branch",
         type=str,
-        default="main",
-        help="Git branch to pull from when using --git (default: main)",
+        default=None,
+        help="Git branch to pull from when using git mode (default: main)",
+    )
+    parser.add_argument(
+        "--commit",
+        type=str,
+        default=None,
+        help="Specific Git commit hash or reference to checkout when using git mode",
     )
     parser.add_argument(
         "--repo",
@@ -117,10 +125,16 @@ def main() -> int:
             print(f"✗ Error updating system: {msg_sys}", file=sys.stderr)
             return 1
 
+    # Auto-enable git mode if --branch or --commit is supplied
+    if args.branch or args.commit:
+        args.git = True
+
     # Git Update Mode
     if args.git:
-        print(f"==> Git mode enabled: Pulling from {args.branch} branch...")
-        ok, msg = updater.update_from_git(branch=args.branch, dry_run=args.dry_run)
+        branch = args.branch or "main"
+        target_info = f"commit {args.commit}" if args.commit else f"{branch} branch"
+        print(f"==> Git mode enabled: Pulling from {target_info}...")
+        ok, msg = updater.update_from_git(branch=branch, commit=args.commit, dry_run=args.dry_run)
         if ok:
             print(f"✓ {msg}")
             if args.full or args.system:
@@ -138,6 +152,11 @@ def main() -> int:
     # Release Check Mode
     print("==> Checking for updates on GitHub Releases...")
     release = updater.check_for_updates()
+
+    if updater.last_check_error:
+        print(f"✗ Failed to check for updates: {updater.last_check_error}", file=sys.stderr)
+        print("  Tip: Verify internet/DNS connectivity or use 'reims-desktop-update --git' to pull from Git.")
+        return 1
 
     if not release:
         print("✓ Your Reims Desktop is already on the latest version!")

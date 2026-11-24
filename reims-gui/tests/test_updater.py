@@ -81,6 +81,16 @@ class TestSystemUpdater(unittest.TestCase):
             ok, msg = self.updater.update_from_git(dry_run=True)
             self.assertTrue(ok)
             self.assertIn("Simulação", msg)
+
+            # Test with custom branch
+            ok_br, msg_br = self.updater.update_from_git(branch="development", dry_run=True)
+            self.assertTrue(ok_br)
+            self.assertIn("development", msg_br)
+
+            # Test with custom commit
+            ok_cm, msg_cm = self.updater.update_from_git(commit="6d3c87d", dry_run=True)
+            self.assertTrue(ok_cm)
+            self.assertIn("6d3c87d", msg_cm)
         finally:
             os.environ.pop("REIMS_MOCK_UPDATER", None)
 
@@ -139,6 +149,16 @@ class TestSystemUpdater(unittest.TestCase):
         res_branch = subprocess.run([sys.executable, str(cli_desktop_update), "--mock", "--git", "--branch", "development", "--dry-run"], capture_output=True, text=True, env=env)
         self.assertEqual(res_branch.returncode, 0)
         self.assertIn("development", res_branch.stdout)
+
+        # 5b. Test --mock --commit 6d3c87d --dry-run (auto-git mode)
+        res_commit = subprocess.run([sys.executable, str(cli_desktop_update), "--mock", "--commit", "6d3c87d", "--dry-run"], capture_output=True, text=True, env=env)
+        self.assertEqual(res_commit.returncode, 0)
+        self.assertIn("6d3c87d", res_commit.stdout)
+
+        # 5c. Test --mock --branch development --dry-run (auto-git mode without --git)
+        res_auto_git = subprocess.run([sys.executable, str(cli_desktop_update), "--mock", "--branch", "development", "--dry-run"], capture_output=True, text=True, env=env)
+        self.assertEqual(res_auto_git.returncode, 0)
+        self.assertIn("development", res_auto_git.stdout)
 
         # 6. Test --mock --system --dry-run
         res_sys = subprocess.run([sys.executable, str(cli_desktop_update), "--mock", "--system", "--dry-run"], capture_output=True, text=True, env=env)
