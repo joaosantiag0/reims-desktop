@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Reims Desktop Control
+Name[pt_BR]=Painel de Controle Reims Desktop
+Name[es_ES]=Panel de Control Reims Desktop
+Comment=Launch Reims Desktop Control automatically on login
+Comment[pt_BR]=Iniciar Painel de Controle Reims Desktop automaticamente ao entrar
+Comment[es_ES]=Iniciar Panel de Control Reims Desktop automáticamente al iniciar sesión
+Exec=/usr/bin/reims-desktop
+Icon=/usr/share/pixmaps/reims-logo.png
+Terminal=false
+StartupNotify=false
+Categories=System;Emulator;Qt;
+X-LXQt-Need-Tray=true

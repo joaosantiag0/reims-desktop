@@ -293,16 +293,40 @@ Keywords=installer;calamares;system;reims;
 EOF
 chmod +x "${ROOTFS}/usr/share/applications/lubuntu-calamares.desktop"
 
-for SKEL_DIR in "${ROOTFS}/etc/skel" "${ROOTFS}/home/lubuntu" "${ROOTFS}/home/reims"; do
-    if [[ -d "${SKEL_DIR}" ]]; then
-        mkdir -p "${SKEL_DIR}/Desktop"
-        # Limpa atalhos antigos com ícones brancos do Calamares/Lubuntu
-        rm -f "${SKEL_DIR}/Desktop"/*calamares*.desktop "${SKEL_DIR}/Desktop"/*install*.desktop "${SKEL_DIR}/Desktop"/*lubuntu*.desktop 2>/dev/null || true
-        cp "${ROOTFS}/usr/share/applications/lubuntu-calamares.desktop" "${SKEL_DIR}/Desktop/lubuntu-calamares.desktop"
-        chmod +x "${SKEL_DIR}/Desktop/lubuntu-calamares.desktop"
-        chown -R 1000:1000 "${SKEL_DIR}/Desktop" 2>/dev/null || true
+# Limpa atalhos de instalação do /etc/skel para não propagar para usuários instalados
+mkdir -p "${ROOTFS}/etc/skel/Desktop"
+rm -f "${ROOTFS}/etc/skel/Desktop"/*calamares*.desktop "${ROOTFS}/etc/skel/Desktop"/*install*.desktop 2>/dev/null || true
+
+# Atalho do instalador apenas na sessão Live (usuários lubuntu e reims)
+for LIVE_USER_DIR in "${ROOTFS}/home/lubuntu" "${ROOTFS}/home/reims"; do
+    if [[ -d "${LIVE_USER_DIR}" ]]; then
+        mkdir -p "${LIVE_USER_DIR}/Desktop"
+        rm -f "${LIVE_USER_DIR}/Desktop"/*calamares*.desktop "${LIVE_USER_DIR}/Desktop"/*install*.desktop 2>/dev/null || true
+        cp "${ROOTFS}/usr/share/applications/lubuntu-calamares.desktop" "${LIVE_USER_DIR}/Desktop/lubuntu-calamares.desktop"
+        chmod +x "${LIVE_USER_DIR}/Desktop/lubuntu-calamares.desktop"
+        chown -R 1000:1000 "${LIVE_USER_DIR}/Desktop" 2>/dev/null || true
     fi
 done
+
+# Configura inicialização automática do Reims Desktop Control ao entrar na sessão
+mkdir -p "${ROOTFS}/etc/xdg/autostart"
+cat << 'EOF' > "${ROOTFS}/etc/xdg/autostart/reims-desktop.desktop"
+[Desktop Entry]
+Type=Application
+Name=Reims Desktop Control
+Name[pt_BR]=Painel de Controle Reims Desktop
+Name[es_ES]=Panel de Control Reims Desktop
+Comment=Launch Reims Desktop Control automatically on login
+Comment[pt_BR]=Iniciar Painel de Controle Reims Desktop automaticamente ao entrar
+Comment[es_ES]=Iniciar Panel de Control Reims Desktop automáticamente al iniciar sesión
+Exec=/usr/bin/reims-desktop
+Icon=/usr/share/pixmaps/reims-logo.png
+Terminal=false
+StartupNotify=false
+Categories=System;Emulator;Qt;
+X-LXQt-Need-Tray=true
+EOF
+chmod 644 "${ROOTFS}/etc/xdg/autostart/reims-desktop.desktop"
 
 # Ajusta informações do disco (.disk/info)
 echo "Reims Desktop 24.04 LTS - Release amd64" > "${STAGE_DIR}/iso/.disk/info"

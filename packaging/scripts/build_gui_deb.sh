@@ -28,6 +28,9 @@ chmod 755 "${STAGE_DIR}/usr/bin/"*
 
 # Permissões nos arquivos estáticos
 chmod 644 "${STAGE_DIR}/usr/share/applications/"*.desktop
+if [[ -d "${STAGE_DIR}/etc/xdg/autostart" ]]; then
+    chmod 644 "${STAGE_DIR}/etc/xdg/autostart/"*.desktop
+fi
 find "${STAGE_DIR}/usr/share/icons" -type f -exec chmod 644 {} +
 find "${STAGE_DIR}/usr/share/pixmaps" -type f -exec chmod 644 {} +
 
