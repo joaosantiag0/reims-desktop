@@ -17,8 +17,10 @@ QWidget = QtWidgets.QWidget
 
 from reims_gui.core.ctl_client import ReimsCtlClient
 from reims_gui.core.models import DoctorHealth, GpuDevice, VmInfo
+from reims_gui.core.updater import SystemUpdater
 from reims_gui.i18n.translator import Translator, t
 from reims_gui.ui.dialogs.new_vm_dialog import NewVmDialog
+from reims_gui.ui.dialogs.update_dialog import UpdateDialog
 from reims_gui.ui.widgets.doctor_bar import DoctorBar
 from reims_gui.ui.widgets.vm_card import VmCard
 
@@ -31,6 +33,7 @@ class MainWindow(QMainWindow):
     def __init__(self, client: ReimsCtlClient, parent=None):
         super().__init__(parent)
         self.client = client
+        self.updater = SystemUpdater()
         self.translator = Translator.get_instance()
         self.cards: List[VmCard] = []
 
@@ -93,6 +96,12 @@ class MainWindow(QMainWindow):
         self.btn_refresh = QPushButton(t("header.refresh"))
         self.btn_refresh.clicked.connect(self.refresh_data)
         header_layout.addWidget(self.btn_refresh)
+
+        # Update Button
+        self.btn_update = QPushButton(t("header.check_updates"))
+        self.btn_update.setObjectName("updateBtn")
+        self.btn_update.clicked.connect(self._handle_check_updates)
+        header_layout.addWidget(self.btn_update)
 
         # New VM Button
         self.btn_new_vm = QPushButton(t("header.new_vm"))
@@ -205,6 +214,19 @@ class MainWindow(QMainWindow):
             self.client.create_vm(req)
             self.refresh_data()
 
+    def _handle_check_updates(self):
+        logger.info("Verificando atualizações no GitHub...")
+        release = self.updater.check_for_updates()
+        if release:
+            dlg = UpdateDialog(release=release, updater=self.updater, parent=self)
+            dlg.exec()
+        else:
+            QMessageBox.information(
+                self,
+                t("update.dialog.up_to_date_title"),
+                t("update.dialog.up_to_date_msg", version=self.updater.current_version),
+            )
+
     def _handle_language_selection(self, index: int):
         lang_code = self.cmb_lang.itemData(index)
         if lang_code:
@@ -215,6 +237,7 @@ class MainWindow(QMainWindow):
         self.lbl_brand_title.setText(t("app.title"))
         self.lbl_brand_subtitle.setText(t("app.subtitle"))
         self.btn_refresh.setText(t("header.refresh"))
+        self.btn_update.setText(t("header.check_updates"))
         self.btn_new_vm.setText(t("header.new_vm"))
         self.lbl_empty_title.setText(t("vm.empty.title"))
         self.lbl_empty_desc.setText(t("vm.empty.desc"))

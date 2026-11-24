@@ -3,6 +3,7 @@
   "app.subtitle": "macOS Virtual Machine Manager with Vulkan Acceleration",
   "header.new_vm": "+ New Virtual Machine",
   "header.refresh": "Refresh",
+  "header.check_updates": "Updates",
   "header.language": "Language",
   "doctor.title": "Host Diagnostics",
   "doctor.kvm": "KVM Enabled (/dev/kvm)",
@@ -42,5 +43,18 @@
   "wizard.btn.create": "Create & Download from Apple",
   "wizard.btn.cancel": "Cancel",
   "dialog.confirm_delete": "Are you sure you want to delete VM '{name}'?",
-  "dialog.confirm_delete_title": "Delete Virtual Machine"
+  "dialog.confirm_delete_title": "Delete Virtual Machine",
+  "update.dialog.title": "ReimsOS System Update",
+  "update.dialog.version_info": "Installed version: {current}  ➔  New version: {latest}",
+  "update.dialog.release_notes": "Release Notes & Changelog:",
+  "update.dialog.status_ready": "Ready to download and update ReimsOS components.",
+  "update.dialog.status_downloading": "Downloading packages from GitHub Releases...",
+  "update.dialog.status_installing": "Installing packages onto the operating system...",
+  "update.dialog.status_success": "System updated successfully!",
+  "update.dialog.status_error": "Failed to update: {err}",
+  "update.dialog.btn_update_now": "Update Now",
+  "update.dialog.btn_cancel": "Cancel",
+  "update.dialog.btn_done": "Done",
+  "update.dialog.up_to_date_title": "ReimsOS Up to Date",
+  "update.dialog.up_to_date_msg": "Your ReimsOS system (v{version}) is already running the latest available release."
 }

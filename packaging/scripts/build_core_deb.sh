@@ -19,6 +19,9 @@ cp -r "${REPO_ROOT}/packaging/templates/reims-core/"* "${STAGE_DIR}/"
 # Garante permissões adequadas
 chmod 755 "${STAGE_DIR}/DEBIAN"
 chmod 755 "${STAGE_DIR}/DEBIAN/postinst"
+if [[ -d "${STAGE_DIR}/usr/bin" ]]; then
+    chmod 755 "${STAGE_DIR}/usr/bin/"*
+fi
 chmod -R 644 "${STAGE_DIR}/etc/modules-load.d/"*
 chmod -R 644 "${STAGE_DIR}/etc/udev/rules.d/"*
 

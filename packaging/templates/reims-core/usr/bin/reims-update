@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""Utilitário de linha de comando para atualização do ReimsOS via GitHub Releases e Git.
+
+Uso:
+  reims-update             Verifica e instala atualizações disponíveis
+  reims-update --check     Apenas verifica se há novas versões
+  reims-update --git       Atualiza diretamente a partir da branch principal do Git
+  reims-update --yes       Instalação sem confirmação interativa
+  reims-update --dry-run   Simula a atualização sem alterar o sistema
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+# Adiciona caminhos padrão onde reims_gui ou reims_core podem estar instalados
+for p in [
+    "/usr/lib/reims-gui",
+    "/usr/share/reims-gui",
+    str(Path(__file__).resolve().parent.parent.parent.parent / "reims-gui" / "src"),
+]:
+    if p not in sys.path and os.path.exists(p):
+        sys.path.insert(0, p)
+
+try:
+    from reims_gui.core.updater import SystemUpdater, ReleaseInfo
+except ImportError:
+    # Se reims_gui não estiver disponível, define uma versão simplificada de emergência
+    print("Aviso: Módulo reims_gui.core.updater não encontrado, usando mecanismo básico.", file=sys.stderr)
+    raise
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Utilitário de Atualização do ReimsOS (GitHub Releases & Git)"
+    )
+    parser.add_argument(
+        "-c", "--check",
+        action="store_true",
+        help="Apenas verifica se há atualizações disponíveis e sai com status 0 (atualização) ou 1 (atualizado)",
+    )
+    parser.add_argument(
+        "-y", "--yes",
+        action="store_true",
+        help="Aplica a atualização automaticamente sem solicitar confirmação",
+    )
+    parser.add_argument(
+        "--git",
+        action="store_true",
+        help="Atualiza diretamente a partir do repositório Git público",
+    )
+    parser.add_argument(
+        "--repo",
+        type=str,
+        default=None,
+        help="Sobrescreve o repositório GitHub (padrão: steelbrain/reims-os ou $REIMS_GITHUB_REPO)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Simula o download e instalação sem aplicar modificações",
+    )
+    parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="Modo mock/teste sem chamadas de rede",
+    )
+    parser.add_argument(
+        "-v", "--version",
+        action="store_true",
+        help="Exibe a versão atual instalada do ReimsOS",
+    )
+
+    args = parser.parse_args()
+
+    if args.mock:
+        os.environ["REIMS_MOCK_UPDATER"] = "1"
+
+    updater = SystemUpdater(repo=args.repo)
+
+    if args.version:
+        print(f"ReimsOS versão instalada: {updater.current_version}")
+        return 0
+
+    print("==================================================")
+    print("             ReimsOS System Updater               ")
+    print("==================================================")
+    print(f"Versão Atual: {updater.current_version}")
+    print(f"Repositório:  https://github.com/{updater.repo}")
+    print("--------------------------------------------------")
+
+    # Modo Atualização via Git
+    if args.git:
+        print("==> Modo Git ativado: Puxando da branch principal...")
+        ok, msg = updater.update_from_git(dry_run=args.dry_run)
+        if ok:
+            print(f"✓ {msg}")
+            return 0
+        else:
+            print(f"✗ Erro: {msg}", file=sys.stderr)
+            return 1
+
+    # Modo Verificação / Releases
+    print("==> Verificando atualizações no GitHub Releases...")
+    release = updater.check_for_updates()
+
+    if not release:
+        print("✓ O seu ReimsOS já está na versão mais recente!")
+        return 1 if args.check else 0
+
+    print(f"\n🎉 Nova versão encontrada: {release.tag_name} (atual: {updater.current_version})")
+    print(f"Título: {release.name}")
+    print(f"Data:   {release.published_at}")
+    if release.body:
+        print("\n--- Notas da Versão ---")
+        print(release.body.strip())
+        print("-----------------------")
+
+    deb_assets = release.deb_assets
+    if not deb_assets:
+        print("\nAviso: Esta release não possui pacotes .deb para atualização automática.")
+        print(f"Mais detalhes em: {release.html_url}")
+        return 0
+
+    print(f"\nPacotes disponíveis para atualização ({len(deb_assets)}):")
+    for a in deb_assets:
+        size_kb = a.size / 1024 if a.size else 0
+        print(f"  • {a.name} ({size_kb:.1f} KB)")
+
+    if args.check:
+        return 0
+
+    if not args.yes:
+        try:
+            resposta = input("\nDeseja baixar e aplicar esta atualização agora? [S/n]: ").strip().lower()
+            if resposta and resposta not in ("s", "sim", "y", "yes"):
+                print("Operação cancelada pelo usuário.")
+                return 0
+        except (KeyboardInterrupt, EOFError):
+            print("\nOperação cancelada.")
+            return 1
+
+    download_dir = Path("/tmp/reims-update")
+    print(f"\n==> Baixando pacotes em {download_dir}...")
+    
+    def on_progress(downloaded: int, total: int, filename: str):
+        pct = (downloaded / total * 100) if total else 0
+        sys.stdout.write(f"\r  [{pct:5.1f}%] {filename} ({downloaded}/{total} bytes)")
+        sys.stdout.flush()
+
+    try:
+        debs = updater.download_assets(release, download_dir, progress_callback=on_progress)
+        print("\n✓ Download concluído com sucesso!")
+    except Exception as e:
+        print(f"\n✗ Erro durante o download: {e}", file=sys.stderr)
+        return 1
+
+    print("\n==> Instalando atualização no sistema...")
+    ok, msg = updater.install_debs(debs, dry_run=args.dry_run)
+    if ok:
+        print(f"✓ {msg}")
+        print("\n🎉 Atualização do ReimsOS concluída com sucesso!")
+        return 0
+    else:
+        print(f"✗ Erro durante a instalação: {msg}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

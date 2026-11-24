@@ -1,0 +1,60 @@
+name: ReimsOS Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag da versão (ex: v0.2.0)"
+        required: true
+        default: "v0.2.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Packages & Publish Release
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbcommon-x11-0 libegl1-mesa libgl1-mesa-glx
+
+      - name: Install Python Dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r reims-gui/requirements.txt
+
+      - name: Run Test Suites
+        run: |
+          python3 -m unittest discover -s iso-builder/tests -p "test_*.py" -v
+          PYTHONPATH=reims-gui/src python3 -m unittest discover -s reims-gui/tests -p "test_*.py" -v
+          python3 -m unittest discover -s packaging/tests -p "test_*.py" -v
+
+      - name: Build Debian Packages (reims-core, reims-gui, reims-vgpu)
+        run: |
+          ./packaging/scripts/build_all.sh
+
+      - name: Create GitHub Release with .deb Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || inputs.tag_name }}
+          name: ReimsOS ${{ github.ref_name || inputs.tag_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          files: |
+            dist/*.deb

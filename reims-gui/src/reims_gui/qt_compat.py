@@ -45,15 +45,26 @@ if not QT_BACKEND:
     logger.warning("Nenhum backend Qt (PySide6, PyQt6, PyQt5) encontrado. Ativando modo Stub/Mock.")
     QT_BACKEND = "MockQt"
 
-    class _MockQtObject:
+    class _MockMeta(type):
+        def __getattr__(cls, name: str) -> Any:
+            return _MockQtObject()
+        def __call__(cls, *args: Any, **kwargs: Any) -> Any:
+            return super().__call__(*args, **kwargs)
+
+    class _MockQtObject(metaclass=_MockMeta):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
-            pass
+            self.text = ""
+        def setText(self, text: str) -> None:
+            self.text = text
         def __getattr__(self, name: str) -> Any:
-            return _MockQtObject
+            return _MockQtObject()
+        def __call__(self, *args: Any, **kwargs: Any) -> Any:
+            return _MockQtObject()
 
     class _MockQtCore:
         QObject = _MockQtObject
         QTimer = _MockQtObject
+        QThread = _MockQtObject
         Signal = staticmethod(lambda *args: None)
         Slot = staticmethod(lambda *args: lambda f: f)
 
@@ -81,6 +92,8 @@ if not QT_BACKEND:
         QSlider = _MockQtObject
         QComboBox = _MockQtObject
         QMessageBox = _MockQtObject
+        QProgressBar = _MockQtObject
+        QTextEdit = _MockQtObject
 
     QtCore = _MockQtCore()  # type: ignore
     QtGui = _MockQtGui()  # type: ignore

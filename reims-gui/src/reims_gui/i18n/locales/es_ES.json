@@ -3,6 +3,7 @@
   "app.subtitle": "Gestor de Máquinas Virtuales macOS con Aceleración Vulkan",
   "header.new_vm": "+ Nueva Máquina Virtual",
   "header.refresh": "Actualizar",
+  "header.check_updates": "Actualizaciones",
   "header.language": "Idioma",
   "doctor.title": "Diagnóstico del Host",
   "doctor.kvm": "KVM Activo (/dev/kvm)",
@@ -42,5 +43,18 @@
   "wizard.btn.create": "Crear y Descargar de Apple",
   "wizard.btn.cancel": "Cancelar",
   "dialog.confirm_delete": "¿Está seguro de que desea eliminar la máquina '{name}'?",
-  "dialog.confirm_delete_title": "Eliminar Máquina Virtual"
+  "dialog.confirm_delete_title": "Eliminar Máquina Virtual",
+  "update.dialog.title": "Actualización de ReimsOS",
+  "update.dialog.version_info": "Versión instalada: {current}  ➔  Nueva versión: {latest}",
+  "update.dialog.release_notes": "Notas de la Versión y Cambios:",
+  "update.dialog.status_ready": "Listo para descargar y actualizar los componentes de ReimsOS.",
+  "update.dialog.status_downloading": "Descargando paquetes de GitHub Releases...",
+  "update.dialog.status_installing": "Instalando paquetes en el sistema operativo...",
+  "update.dialog.status_success": "¡Sistema actualizado con éxito!",
+  "update.dialog.status_error": "Error al actualizar: {err}",
+  "update.dialog.btn_update_now": "Actualizar Ahora",
+  "update.dialog.btn_cancel": "Cancelar",
+  "update.dialog.btn_done": "Finalizar",
+  "update.dialog.up_to_date_title": "ReimsOS Actualizado",
+  "update.dialog.up_to_date_msg": "Su sistema ReimsOS (v{version}) ya está en la versión más reciente disponible."
 }

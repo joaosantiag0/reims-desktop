@@ -64,6 +64,7 @@ class TestDebianPackaging(unittest.TestCase):
                 names = tar.getnames()
                 self.assertTrue(any("reims.conf" in n for n in names))
                 self.assertTrue(any("99-reims.rules" in n for n in names))
+                self.assertTrue(any("usr/bin/reims-update" in n for n in names))
 
     def test_build_gui_package(self):
         cmd = [str(self.scripts_dir / "build_gui_deb.sh")]
