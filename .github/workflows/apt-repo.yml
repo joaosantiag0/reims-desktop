@@ -54,6 +54,12 @@ jobs:
 
       - name: Generate APT Repository Structure
         run: |
+          # O reims-vgpu (QEMU upstream, ~212 MB) não vai para o apt: o GitHub
+          # Pages tem limite de 100 MB por arquivo, e publicar a versão
+          # estável (stub) derrubaria a upstream instalada via apt upgrade.
+          # O stack upstream é distribuído pela Release (reims-vgpu-amd64.deb),
+          # consumida pelo reims-firstboot-setup.
+          rm -f dist/reims-vgpu_*.deb
           python3 scripts/generate_apt_repo.py --deb-dir dist --out-dir repo
 
       - name: Sign repository metadata (InRelease + Release.gpg)

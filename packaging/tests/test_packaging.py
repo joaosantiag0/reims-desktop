@@ -129,6 +129,7 @@ class TestDebianPackaging(unittest.TestCase):
 
     def test_build_version_override(self):
         """REIMS_VERSION deve trocar Version do control e o nome do .deb."""
+        self.addCleanup(self._remove_test_artifacts)
         env = dict(os.environ, REIMS_VERSION="0.1.1+test.20261124")
         res = subprocess.run(
             [str(self.scripts_dir / "build_core_deb.sh")],
@@ -192,6 +193,12 @@ class TestDebianPackaging(unittest.TestCase):
             res = subprocess.run([str(helper)], capture_output=True, text=True, env=env)
             self.assertEqual(res.returncode, 0)
             self.assertEqual(res.stdout, "")
+
+    def _remove_test_artifacts(self):
+        """Remove debs gerados por testes (não podem vazar para releases)."""
+        if self.dist_dir.is_dir():
+            for deb in self.dist_dir.glob("*+test.*.deb"):
+                deb.unlink(missing_ok=True)
 
     def test_generate_apt_repo_metadata(self):
         """generate_apt_repo.py deve produzir dists/pool com Packages por arquitetura."""

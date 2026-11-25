@@ -73,4 +73,5 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            dist/*.deb
+            dist/reims-core_*.deb
+            dist/reims-gui_*.deb
