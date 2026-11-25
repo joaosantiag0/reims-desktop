@@ -9,7 +9,6 @@ linux-firmware
 dkms
 pciutils
 usbutils
-acpi-support
 initramfs-tools
 
 # 2. Pilha de Gráficos e Vulkan (NVIDIA, AMD, Intel)
