@@ -129,6 +129,53 @@ echo "==> Gerando imagem SquashFS compactada com zstd..."
 mkdir -p "${BUILD_DIR}/image/casper"
 mksquashfs "${BUILD_DIR}/chroot" "${BUILD_DIR}/image/casper/filesystem.squashfs" -comp zstd -Xcompression-level 15
 
+# Monta a árvore de boot: kernel/initrd para o casper, isolinux (BIOS) e
+# grub standalone com efi.img (UEFI)
+echo "==> Preparando árvore de boot da ISO (BIOS + UEFI)..."
+KERNEL="$(ls -1 "${BUILD_DIR}/chroot/boot/vmlinuz-"* 2>/dev/null | sort -V | tail -n 1)"
+INITRD="$(ls -1 "${BUILD_DIR}/chroot/boot/initrd.img-"* 2>/dev/null | sort -V | tail -n 1)"
+if [[ -z "${KERNEL}" || -z "${INITRD}" ]]; then
+    echo "ERRO: kernel/initrd não encontrados no chroot." >&2
+    exit 1
+fi
+cp "${KERNEL}" "${BUILD_DIR}/image/casper/vmlinuz"
+cp "${INITRD}" "${BUILD_DIR}/image/casper/initrd"
+
+mkdir -p "${BUILD_DIR}/image/isolinux" "${BUILD_DIR}/image/boot/grub" "${BUILD_DIR}/image/.disk"
+cp "${BUILD_DIR}/chroot/usr/lib/ISOLINUX/isolinux.bin" "${BUILD_DIR}/image/isolinux/"
+cp "${BUILD_DIR}/chroot/usr/lib/syslinux/modules/bios/ldlinux.c32" "${BUILD_DIR}/image/isolinux/"
+echo "Reims Desktop 24.04 LTS (${UBUNTU_RELEASE})" > "${BUILD_DIR}/image/.disk/info"
+
+cat << 'EOF' > "${BUILD_DIR}/image/isolinux/isolinux.cfg"
+DEFAULT linux
+TIMEOUT 30
+LABEL linux
+  KERNEL /casper/vmlinuz
+  APPEND initrd=/casper/initrd boot=casper quiet splash ---
+EOF
+
+cat << 'EOF' > "${BUILD_DIR}/image/boot/grub/grub.cfg"
+set default=0
+set timeout=5
+menuentry "Reims Desktop 24.04" {
+  linux /casper/vmlinuz boot=casper quiet splash ---
+  initrd /casper/initrd
+}
+EOF
+
+grub-mkstandalone -O x86_64-efi \
+    -o "${BUILD_DIR}/image/boot/grub/grubx64.efi" \
+    --modules="part_gpt part_msdos fat iso9660 linux normal gzio boot all_video gfxterm echo" \
+    --themes= --fonts= --locales= \
+    "boot/grub/grub.cfg=${BUILD_DIR}/image/boot/grub/grub.cfg" \
+    || { echo "ERRO: grub-mkstandalone falhou." >&2; exit 1; }
+
+dd if=/dev/zero of="${BUILD_DIR}/image/boot/grub/efi.img" bs=1M count=8 status=none
+mkfs.vfat -n REIMS_EFI "${BUILD_DIR}/image/boot/grub/efi.img" >/dev/null
+mmd -i "${BUILD_DIR}/image/boot/grub/efi.img" ::EFI ::EFI/BOOT
+mcopy -i "${BUILD_DIR}/image/boot/grub/efi.img" \
+    "${BUILD_DIR}/image/boot/grub/grubx64.efi" ::/EFI/BOOT/BOOTX64.EFI
+
 echo "==> Gerando ISO Híbrida UEFI/BIOS..."
 xorriso -as mkisofs \
     -r -V "REIMS_OS_2404" \

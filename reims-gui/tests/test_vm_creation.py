@@ -56,6 +56,8 @@ class TestVmCreation(unittest.TestCase):
         self.assertEqual(created_vm.disk_size_gb, 100.0)
 
     def test_vm_creation_dialog_mock_execution(self):
+        import time
+
         client = ReimsCtlClient(mock=True)
         req = NewVmRequest(
             name="macOS-Dialog-Test",
@@ -68,6 +70,17 @@ class TestVmCreation(unittest.TestCase):
 
         dlg = VmCreationDialog(req=req, client=client)
         self.assertIsNotNone(dlg)
+
+        # Com backend Qt real, o worker roda em QThread assíncrono: processa
+        # o event loop até o worker terminar (MockQt executa síncrono)
+        app = QtWidgets.QApplication.instance() if QT_BACKEND != "MockQt" else None
+        if app is not None and hasattr(dlg, "worker"):
+            dlg.worker.wait(5000)
+            for _ in range(100):
+                if dlg.success:
+                    break
+                app.processEvents()
+                time.sleep(0.02)
 
         # In mock mode, worker runs immediately and sets success=True
         self.assertTrue(dlg.success)

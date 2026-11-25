@@ -10,6 +10,8 @@ dkms
 pciutils
 usbutils
 initramfs-tools
+casper
+isolinux
 
 # 2. Pilha de Gráficos e Vulkan (NVIDIA, AMD, Intel)
 libvulkan1
