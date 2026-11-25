@@ -6,14 +6,14 @@ Version: 24.04
 Architectures: amd64 all
 Components: main
 Description: Official Reims Desktop APT Repository
-Date: Wed, 25 Nov 2026 00:14:29 UTC
+Date: Wed, 25 Nov 2026 00:34:16 UTC
 MD5Sum:
- 76348b84b87977ca84392cfd9d971e32 2008 main/binary-amd64/Packages
- 507cc080c0153c886ae7a50085e1c955 928 main/binary-amd64/Packages.gz
- b441a6a5a707df719bba7696fa238e6f 1339 main/binary-all/Packages
- 4d2df981421643703f85e7cdf5222ddd 712 main/binary-all/Packages.gz
+ 3818204249c397e60a7cb24b521ebd37 2008 main/binary-amd64/Packages
+ 5b59bfbb60da772fa156da46bff75dbf 930 main/binary-amd64/Packages.gz
+ 95ae54e811ba63f27080071b9e03903e 1339 main/binary-all/Packages
+ 3f5d028a2a9974b3e1711c1086ca6555 714 main/binary-all/Packages.gz
 SHA256:
- 4414c5604c2524ff734b013a6fbd44def2d47ade5ba287ec2b262c01899b21f2 2008 main/binary-amd64/Packages
- eda1ad82dd279516793e8d3abb98286fa21dc71dd6abe873cc19d61f42b8af3d 928 main/binary-amd64/Packages.gz
- 297114aa087b49907e3644435c1264fabc585e2c562fcb338a9f2234185de16e 1339 main/binary-all/Packages
- 4b7b426cf405ac36ff227f47da25f7f970bcf4a045bf27ecc87358d5b2d90833 712 main/binary-all/Packages.gz
+ a5f2a2e38eb1abea17af79b7b12621a709f221fddfe3f1e97c454890654d8d20 2008 main/binary-amd64/Packages
+ 8cd0cab300b01bdfebc4bf7f5e579eac027b997ae24c7aab7b79d32044ddf900 930 main/binary-amd64/Packages.gz
+ 5278b742f5957edbeaf4dcd2e0355d013c3760d83bf2b76d97a68010dde65d14 1339 main/binary-all/Packages
+ ee6a1d48c3789474dae28c4eb17f48ec2a61631327f23300af5f32211cb66b7a 714 main/binary-all/Packages.gz
