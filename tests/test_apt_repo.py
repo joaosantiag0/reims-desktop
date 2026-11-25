@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import gzip
+import os
+import subprocess
 import shutil
 import tempfile
 import unittest
@@ -14,6 +16,12 @@ class TestAptRepoGenerator(unittest.TestCase):
     def setUpClass(cls):
         cls.repo_root = Path(__file__).resolve().parent.parent
         cls.dist_dir = cls.repo_root / "dist"
+
+        # Os testes rodam em qualquer ambiente: constrói os debs se faltarem
+        if not list(cls.dist_dir.glob("*.deb")):
+            build_script = cls.repo_root / "packaging" / "scripts" / "build_all.sh"
+            os.chmod(build_script, 0o755)
+            subprocess.run([str(build_script)], check=True, capture_output=True, text=True)
 
     def test_generate_apt_repo(self):
         deb_files = list(self.dist_dir.glob("*.deb"))

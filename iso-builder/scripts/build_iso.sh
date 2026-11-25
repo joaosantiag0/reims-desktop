@@ -87,6 +87,7 @@ cp "${DIST_DIR}"/*.deb "${BUILD_DIR}/chroot/tmp/reims-debs/"
 
 # Script interno de provisionamento do chroot
 cat << 'EOF' > "${BUILD_DIR}/chroot/tmp/setup.sh"
+#!/usr/bin/env bash
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
