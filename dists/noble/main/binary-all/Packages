@@ -1,5 +1,5 @@
 Package: reims-core
-Version: 0.1.0+build.20261125013805
+Version: 0.1.0+build.20261125015709
 Section: admin
 Priority: optional
 Architecture: all
@@ -8,13 +8,13 @@ Depends: qemu-system-x86, ovmf, swtpm, libvulkan1, mesa-vulkan-drivers, udev, op
 Description: Core configuration and kernel rules for Reims Desktop (reims-vgpu)
  Configures kernel modules (/dev/udmabuf, kvm) and udev access rules
  required for accelerated macOS guest virtualization on Linux hosts.
-Filename: pool/main/reims-core_0.1.0+build.20261125013805_all.deb
-Size: 7490724
-SHA256: e9033f0843ea635bee841961f1e00796699d0c9e73a3740d5b4d3a4d164ad867
-MD5sum: c1b06f3e01b4ae7e2c5551d6b669c6a7
+Filename: pool/main/reims-core_0.1.0+build.20261125015709_all.deb
+Size: 7490720
+SHA256: ec407cbf031796f2f7996bdae6662b5e0b001a19c9833cc0add94a7b848a0d9d
+MD5sum: f1f684c1546b13e2e256050297689df9
 
 Package: reims-gui
-Version: 0.1.0+build.20261125013805
+Version: 0.1.0+build.20261125015709
 Section: utils
 Priority: optional
 Architecture: all
@@ -23,7 +23,7 @@ Depends: python3 (>= 3.10), python3-pyqt6 | python3-pyside6 | python3-pyqt5, rei
 Description: Graphical Interface for Reims Desktop and reims-desktop-ctl
  Modern Qt6 graphical user interface for managing macOS virtual machines
  with hardware-accelerated graphics using reims-vgpu and Vulkan.
-Filename: pool/main/reims-gui_0.1.0+build.20261125013805_all.deb
-Size: 3778876
-SHA256: 061afab316a5eab8784914c1f4044a1ed4db32ba8a07e927d13af0d9bc31bb1b
-MD5sum: e25b1e0f2aeadcddd299baf6dad721c2
+Filename: pool/main/reims-gui_0.1.0+build.20261125015709_all.deb
+Size: 3778878
+SHA256: c8a79558478765971d4cd8249bf7620e6888f75cbd5f76195aaecc772cf3944d
+MD5sum: b5dd46b1e1290ebd5002e76c9ee3d1eb
