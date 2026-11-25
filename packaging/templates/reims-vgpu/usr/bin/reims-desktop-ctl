@@ -83,7 +83,7 @@ case "${CMD}" in
                     echo "${line}"
                     FOUND_GPU=true
                 fi
-            done < <(lspci -nn 2>/dev/null | grep -i -E "vga compatible controller|3d controller|display controller" | sed -E 's/^([0-9a-f:.]+) [^[]*(\[[0-9a-f:]+\]) (.*)/\2 \3/' || true)
+            done < <(lspci -nn 2>/dev/null | grep -i -E "vga compatible controller|3d controller|display controller" | sed -E -e 's/^[^ ]+ [^[]*\[[0-9a-f:]+\]: +//' -e 's/^(.*)\[(....:....)\][^[]*$/[\2] \1/' -e 's/ +$//' || true)
         fi
         if [[ "${FOUND_GPU}" == "false" ]]; then
             echo "[10de:2520] NVIDIA GeForce RTX 3060 Mobile"
