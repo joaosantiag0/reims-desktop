@@ -9,30 +9,30 @@ Version: 24.04
 Architectures: amd64 all
 Components: main
 Description: Official Reims Desktop APT Repository
-Date: Tue, 24 Nov 2026 23:51:53 UTC
+Date: Wed, 25 Nov 2026 00:14:29 UTC
 MD5Sum:
- f608d41715790bd9b63babb98052e373 2008 main/binary-amd64/Packages
- 8789c548d5953329684103e78530ea41 928 main/binary-amd64/Packages.gz
- 74a6a8d6752158109b658a4171a17679 1339 main/binary-all/Packages
- 5efc1363459545f637cb1cc64a200e22 708 main/binary-all/Packages.gz
+ 76348b84b87977ca84392cfd9d971e32 2008 main/binary-amd64/Packages
+ 507cc080c0153c886ae7a50085e1c955 928 main/binary-amd64/Packages.gz
+ b441a6a5a707df719bba7696fa238e6f 1339 main/binary-all/Packages
+ 4d2df981421643703f85e7cdf5222ddd 712 main/binary-all/Packages.gz
 SHA256:
- 12040ce8a07c4c5969336cff83bd200f346c1b82b0460f2151d369578efa6994 2008 main/binary-amd64/Packages
- ef8ebd17e471a70e21d8035e0ff17a3653893cb7c0f5df2a960191a2d16ae2d1 928 main/binary-amd64/Packages.gz
- 82263e6aca64ae2b41d1ae1d9c651a981e8dae7290f9a7a16e3d0db5c271a382 1339 main/binary-all/Packages
- c20c6bc27875417adcc1eaf346fa9e9e5147013ee45f6109c86ebe7ff20d61c2 708 main/binary-all/Packages.gz
+ 4414c5604c2524ff734b013a6fbd44def2d47ade5ba287ec2b262c01899b21f2 2008 main/binary-amd64/Packages
+ eda1ad82dd279516793e8d3abb98286fa21dc71dd6abe873cc19d61f42b8af3d 928 main/binary-amd64/Packages.gz
+ 297114aa087b49907e3644435c1264fabc585e2c562fcb338a9f2234185de16e 1339 main/binary-all/Packages
+ 4b7b426cf405ac36ff227f47da25f7f970bcf4a045bf27ecc87358d5b2d90833 712 main/binary-all/Packages.gz
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEEPxAieEftYtUUlqJA3iA/ySEdmNUFAmsGIxkACgkQ3iA/ySEd
-mNX0GhAAq9BM9Y9OhgdNFaZq/UdHBYVLOaw2hhc9ZDG+fqPEFOpz4G+3Im0nbrDR
-5YHbcpZgh4Xt+uEryVNz/FxrlDRvSgolbvdKZI0ZgnZNxJ00X4x7W9SLQ81v5RsA
-Mnf5h96JF7xTVP1jWFwq7tRuRQh9kb5auoe3TEHf86V6E8aNLvZEmOKqs2+d9XrG
-9Ddp576oY990K9Q1TBNwrz4yXq+PqHwbMDkZt55gLy3IiaW5y1P8niAxYD79ApHq
-6wpZUzemN2yRHbK8AXwWwcB6TP3z3YtiKvc9th4RpYyIJC1N4ilTSLaJiOsM6DCP
-b7doWTRdEIsur4/kcxoGyMstUJTUvFvZ3sEqvlF+T6nsYQi37ceI7i5bwj0IJgtX
-JZJX7UFqjeOvvgZ8+JioIhF7M7/XQ/o1XzcOeNKLCPpKMAgYRrtBoQ/t1iazkBD9
-HcjDnbdugUnK2smjTSTZnEhvu/p2BlyTg7Jq/CP1KWi4ZoA8fQGapcfLxkndo95h
-T+N78pd+2bJYRIEwNJXx8qC/8gguf6v0Ha5QZCR0Mpu9qdRGVXfarPBdO1Z/rYka
-/+qxCwIqRtljAz4XRZGZ6lOULAn9mrJyp2ELVsrdqYMNiHq9NkhJ3UD3mTbTcfrn
-OjrH1UfQA6dU2kv1+1oK/DNtw6XaBquvqUfUnDyks5u87hhhFu8=
-=1Cll
+iQIzBAEBCgAdFiEEPxAieEftYtUUlqJA3iA/ySEdmNUFAmsGKGUACgkQ3iA/ySEd
+mNW2EQ//W0i1ojbKTsdZmNhTJ9k12JDumGas7oLab135Qb+3obmx5BBqL9t72DYG
+LLkg7PJDowxNgmfYRutRsDlkjHmPwSDAqA/zcg9/LAr8Ne5h14lYag3/fZ4JWjGo
+5mFONUYPG6ce0/JJMYoTdDTT5/KUHB6hdqgaPVIObxAJUNfH9uMjaOw1b2MxF3SD
+g2I88Hi/fOKSdFque6Kup73B+jp6GToq+N5R4Yl34c6/Da51ahrIEnwP/4jQ+Wtw
+hB1oaU4NoOf6GjPC+R4PniD3ExaKuW4X0mIqM3yBP0sG4iq+UILSPF57hm6Olx2H
+y++YFJd3u4ruMwKRd/fphXuO6/Qt7uvQ7SZFHXpcPh2EK7MP+ugsuJHk5riQCzoc
+KmzwLR3vkY4wt3HQ+RPS62N7Nt25iUY9PfOvieT0KyjCNm/A91QpLJbIRgJeVyNy
+LMyoUoxtVTYy0xVLcVr9WVT0nCwwtTvOiPV9JdAuBoW5Q0sDhKGb6S82pNzgDQwJ
+ai5dD03Fx9TaFoeaN0fjCInigp+a25muCeipf9CsBHmZHwv3Ft1SLh7D9t1ecbsj
+u2fmuYLE2UmFfNhnw3dA2h5Ehb3DeuavXTEJGZMQiebdorkzVzioW2uxLNT3s57w
+trxl73w82SK8XxVOjcVrtcjJeZAmWAOAI7WINyaGsBr/up6U/HU=
+=s33m
 -----END PGP SIGNATURE-----
