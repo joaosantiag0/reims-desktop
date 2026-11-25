@@ -1,5 +1,5 @@
 Package: reims-core
-Version: 0.1.0+build.20261125005647
+Version: 0.1.0+build.20261125011731
 Section: admin
 Priority: optional
 Architecture: all
@@ -8,13 +8,13 @@ Depends: qemu-system-x86, ovmf, swtpm, libvulkan1, mesa-vulkan-drivers, udev, op
 Description: Core configuration and kernel rules for Reims Desktop (reims-vgpu)
  Configures kernel modules (/dev/udmabuf, kvm) and udev access rules
  required for accelerated macOS guest virtualization on Linux hosts.
-Filename: pool/main/reims-core_0.1.0+build.20261125005647_all.deb
-Size: 7490722
-SHA256: d6a7e1e8074168bd79b489670b36bab15e3c4ff5c4a5ffc411cc942a882fd492
-MD5sum: 4ad815e7f9a8311bda529520a72b555b
+Filename: pool/main/reims-core_0.1.0+build.20261125011731_all.deb
+Size: 7490718
+SHA256: 9941b486cc49934a74f2a535f18e308b1d31e1f5f2c09d318812122d51860fdf
+MD5sum: a52c9338b861e6caf78ccf501c3b66b2
 
 Package: reims-gui
-Version: 0.1.0+build.20261125005647
+Version: 0.1.0+build.20261125011731
 Section: utils
 Priority: optional
 Architecture: all
@@ -23,13 +23,13 @@ Depends: python3 (>= 3.10), python3-pyqt6 | python3-pyside6 | python3-pyqt5, rei
 Description: Graphical Interface for Reims Desktop and reims-desktop-ctl
  Modern Qt6 graphical user interface for managing macOS virtual machines
  with hardware-accelerated graphics using reims-vgpu and Vulkan.
-Filename: pool/main/reims-gui_0.1.0+build.20261125005647_all.deb
-Size: 3778880
-SHA256: e9a1ae38a68b6debc1a9d37c26a28928c2160de12dcc82149022a3a4b1d56cad
-MD5sum: 7f7ddcdba69b0e4a10d9f2b66252d47b
+Filename: pool/main/reims-gui_0.1.0+build.20261125011731_all.deb
+Size: 3778874
+SHA256: d42f8dff3bd5780d7f2122211a38656b62e7748bc3f923005a199e028850b4bc
+MD5sum: 3f25312cdeef1d28cf1165c8b28d11d2
 
 Package: reims-vgpu
-Version: 0.1.0+build.20261125005647
+Version: 0.1.0+build.20261125011731
 Section: utils
 Priority: optional
 Architecture: amd64
@@ -38,7 +38,7 @@ Depends: reims-core (>= 0.1.0), libvulkan1, libglib2.0-0, libpixman-1-0, libslir
 Description: Accelerated macOS virtual GPU for QEMU and reims-ctl utility
  Contains the patched qemu-system-x86_64 build with metal2vulkan acceleration,
  along with reims-ctl and reims-util for automated macOS VM provisioning.
-Filename: pool/main/reims-vgpu_0.1.0+build.20261125005647_amd64.deb
-Size: 3838
-SHA256: e6c30596fff727676fb6566406db4541941eec716ffbd3d743accf13bb30acd7
-MD5sum: a89b5e824216489a2842984f569d5426
+Filename: pool/main/reims-vgpu_0.1.0+build.20261125011731_amd64.deb
+Size: 3834
+SHA256: 54ec735a2fedb5ee465a447ac110aa1ecf83a3bfda85989d54a47db9bd774ed0
+MD5sum: 18238f513ed37aa02556499dd18fac8a
