@@ -66,10 +66,12 @@ class TestReimsBinariesPackaging(unittest.TestCase):
         self.assertEqual(res_doc.returncode, 0)
         self.assertIn("KVM:", res_doc.stdout)
 
-        # Test gpus
+        # Test gpus: o contrato é saída parseável "[vendor:device] Nome"
+        # (GPUs reais via lspci, ou linhas de fallback em hosts sem GPU)
         res_gpu = subprocess.run([str(ctl_script), "gpus"], capture_output=True, text=True)
         self.assertEqual(res_gpu.returncode, 0)
-        self.assertTrue("NVIDIA" in res_gpu.stdout or "Graphics" in res_gpu.stdout or "AMD" in res_gpu.stdout)
+        gpu_lines = [l for l in res_gpu.stdout.splitlines() if l.startswith("[")]
+        self.assertTrue(gpu_lines, f"gpus produced no [vendor:device] lines: {res_gpu.stdout!r} {res_gpu.stderr!r}")
 
         # Test create VM
         with tempfile.TemporaryDirectory() as fake_home:

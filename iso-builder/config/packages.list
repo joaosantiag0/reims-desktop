@@ -12,6 +12,7 @@ usbutils
 initramfs-tools
 casper
 isolinux
+syslinux-common
 
 # 2. Pilha de Gráficos e Vulkan (NVIDIA, AMD, Intel)
 libvulkan1
