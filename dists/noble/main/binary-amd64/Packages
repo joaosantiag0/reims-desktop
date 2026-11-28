@@ -1,5 +1,5 @@
 Package: reims-core
-Version: 0.1.0+build.20261128052001
+Version: 0.1.0+build.20261128053841
 Section: admin
 Priority: optional
 Architecture: all
@@ -8,13 +8,13 @@ Depends: qemu-system-x86, ovmf, swtpm, libvulkan1, mesa-vulkan-drivers, udev, op
 Description: Core configuration and kernel rules for Reims Desktop (reims-vgpu)
  Configures kernel modules (/dev/udmabuf, kvm) and udev access rules
  required for accelerated macOS guest virtualization on Linux hosts.
-Filename: pool/main/reims-core_0.1.0+build.20261128052001_all.deb
-Size: 7497472
-SHA256: bd26d8fdfa7d6dfcbf959f2c104f759577e88672057e44f1473e5aef347ed325
-MD5sum: 52542ad5e67d3a3b7a8c2da7401f27d3
+Filename: pool/main/reims-core_0.1.0+build.20261128053841_all.deb
+Size: 7498010
+SHA256: 3bbe7b564ac346999a170fd0a2a961964dd0c896b5285f57d88585b444eaaec7
+MD5sum: 081ed87d2360db2135c33492101b83e2
 
 Package: reims-gui
-Version: 0.1.0+build.20261128052001
+Version: 0.1.0+build.20261128053841
 Section: utils
 Priority: optional
 Architecture: all
@@ -23,13 +23,13 @@ Depends: python3 (>= 3.10), python3-pyqt6 | python3-pyside6 | python3-pyqt5, rei
 Description: Graphical Interface for Reims Desktop and reims-desktop-ctl
  Modern Qt6 graphical user interface for managing macOS virtual machines
  with hardware-accelerated graphics using reims-vgpu and Vulkan.
-Filename: pool/main/reims-gui_0.1.0+build.20261128052001_all.deb
-Size: 3788304
-SHA256: 960eee01be8e40083269e70a5cec37b1f3d7dd0e3533333556bc43c8cf94f192
-MD5sum: 065f0b39dfa9574c1f8c39699f127af4
+Filename: pool/main/reims-gui_0.1.0+build.20261128053841_all.deb
+Size: 3788310
+SHA256: b05c1ac9945817b768c0d9706a3b5d5609d5bf43e105aee0cc25190b10736417
+MD5sum: cb95ccc57256c225b0f830cafc973719
 
 Package: reims-web
-Version: 0.1.0+build.20261128052001
+Version: 0.1.0+build.20261128053841
 Section: utils
 Priority: optional
 Architecture: all
@@ -41,7 +41,7 @@ Description: Proxmox-style Web Console for Reims Desktop
  live host charts, diagnostics, GPU list, VM lifecycle and creation wizard.
  Reims Desktop is an independent community project with no affiliation with
  Apple Inc. or the upstream Reims (steelbrain/reims-vgpu) project.
-Filename: pool/main/reims-web_0.1.0+build.20261128052001_all.deb
+Filename: pool/main/reims-web_0.1.0+build.20261128053841_all.deb
 Size: 1012592
-SHA256: 00df9a4597679ab0b0b2d183406259a5fb17be5e6e18b018e3ce1967ad6798d0
-MD5sum: 9660a32483bdcc39f9dce7cc07e19eb8
+SHA256: 23bcf385e3db5e20b1b397b151a29df203a215602db8d56e7b48888363ba167a
+MD5sum: 4c8dac32d3c250dd304b9706c46293f1
