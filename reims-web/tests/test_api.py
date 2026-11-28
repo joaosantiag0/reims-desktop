@@ -112,10 +112,28 @@ class TestWebApiWithAuth(unittest.TestCase):
         res = self.tc.get("/api/tasks/create-999-x", headers=self.headers)
         self.assertEqual(res.status_code, 404)
 
-    def test_console_probe_reports_unavailable(self):
+    def test_console_probe_reports_stream_and_input(self):
         res = self.tc.get("/api/vms/macOS-Tahoe-Dev/console", headers=self.headers)
         self.assertEqual(res.status_code, 200)
-        self.assertFalse(res.json()["available"])
+        data = res.json()
+        self.assertTrue(data["available"])
+        self.assertEqual(data["stream_url"], "/api/vms/macOS-Tahoe-Dev/screen.mjpeg")
+        self.assertEqual(data["input_url"], "/api/vms/macOS-Tahoe-Dev/input")
+
+    def test_console_stream_and_input_endpoints(self):
+        token = self.headers["Authorization"].split(" ", 1)[1]
+        res_stream = self.tc.get(f"/api/vms/macOS-Tahoe-Dev/screen.mjpeg?token={token}")
+        self.assertEqual(res_stream.status_code, 200)
+        self.assertIn("multipart/x-mixed-replace", res_stream.headers["content-type"])
+        self.assertIn(b"--frame", res_stream.content)
+
+        res_input = self.tc.post(
+            "/api/vms/macOS-Tahoe-Dev/input",
+            headers=self.headers,
+            json={"type": "click", "x": 0.5, "y": 0.5, "button": 1},
+        )
+        self.assertEqual(res_input.status_code, 200)
+        self.assertTrue(res_input.json()["ok"])
 
     # ------------------------------------------------------------ host info
     def test_doctor_endpoint(self):

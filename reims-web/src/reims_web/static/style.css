@@ -171,3 +171,15 @@ body {
 .toast.ok { border-left-color: var(--ok); }
 .toast.err { border-left-color: var(--err); }
 @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Live console modal */
+.console-card { width: min(1160px, 96vw); max-height: 94vh; display: flex; flex-direction: column; gap: 10px; padding: 14px; }
+.console-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.console-title { display: flex; align-items: center; gap: 8px; }
+.console-res { color: var(--muted); font-size: 12px; }
+.console-text-form { display: flex; gap: 6px; flex: 1; max-width: 360px; }
+.console-text-form input { flex: 1; min-width: 120px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); }
+.console-actions { display: flex; gap: 6px; }
+.console-stage { background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; flex: 1; min-height: 280px; }
+.console-screen { max-width: 100%; max-height: 78vh; object-fit: contain; cursor: crosshair; outline: none; user-select: none; }
+.console-stage:fullscreen .console-screen { max-height: 100vh; width: 100vw; height: 100vh; }

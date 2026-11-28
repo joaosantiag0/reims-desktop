@@ -133,6 +133,29 @@
   </div>
 </div>
 
+<!-- Live VM Console modal (MJPEG stream + mouse/keyboard input) -->
+<div id="consoleModal" class="modal hidden">
+  <div class="modal-card console-card">
+    <div class="console-toolbar">
+      <div class="console-title">
+        <strong id="consoleVmName">VM</strong>
+        <span id="consoleRes" class="console-res"></span>
+      </div>
+      <form id="consoleTextForm" class="console-text-form">
+        <input type="text" id="consoleTextInput" placeholder="Enviar texto..." autocomplete="off">
+        <button type="submit" class="btn">Enviar</button>
+      </form>
+      <div class="console-actions">
+        <button type="button" class="btn" id="consoleFullscreen">Fullscreen</button>
+        <button type="button" class="btn btn-ghost" id="consoleClose">Fechar</button>
+      </div>
+    </div>
+    <div class="console-stage" id="consoleStage">
+      <img id="consoleScreen" class="console-screen" tabindex="0" draggable="false" alt="VM Screen">
+    </div>
+  </div>
+</div>
+
 <div id="toasts" class="toasts"></div>
 <script src="app.js"></script>
 </body>

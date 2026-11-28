@@ -214,6 +214,8 @@ async function vmAction(action, vm, btn) {
         toast(t("web.console.unavailable"), "err");
         return;
       }
+      openConsoleModal(vm.name, info);
+      return;
     }
     await refreshVms();
   } catch (e) {
@@ -369,6 +371,110 @@ function openTaskModal(taskId) {
 document.getElementById("taskClose").addEventListener("click", () => {
   document.getElementById("taskModal").classList.add("hidden");
 });
+
+// ---------------------------------------------------------------- live console
+const consoleState = {
+  inputUrl: null,
+  lastMove: 0,
+};
+
+function openConsoleModal(vmName, info) {
+  const modal = document.getElementById("consoleModal");
+  const img = document.getElementById("consoleScreen");
+  document.getElementById("consoleVmName").textContent = vmName;
+  document.getElementById("consoleRes").textContent =
+    info.width && info.height ? `${info.width}×${info.height}` : "";
+  consoleState.inputUrl = info.input_url;
+  const sep = info.stream_url.includes("?") ? "&" : "?";
+  const tokenQ = state.token ? `${sep}token=${encodeURIComponent(state.token)}` : "";
+  img.src = `${info.stream_url}${tokenQ}`;
+  modal.classList.remove("hidden");
+  img.focus();
+}
+
+function closeConsoleModal() {
+  const modal = document.getElementById("consoleModal");
+  const img = document.getElementById("consoleScreen");
+  img.src = "";
+  consoleState.inputUrl = null;
+  modal.classList.add("hidden");
+}
+
+function sendConsoleInput(payload) {
+  if (!consoleState.inputUrl) return;
+  fetch(consoleState.inputUrl, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+}
+
+function normalizedCoords(ev, img) {
+  const rect = img.getBoundingClientRect();
+  if (!rect.width || !rect.height) return { x: 0.5, y: 0.5 };
+  const x = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+  const y = Math.max(0, Math.min(1, (ev.clientY - rect.top) / rect.height));
+  return { x, y };
+}
+
+(() => {
+  const img = document.getElementById("consoleScreen");
+  img.addEventListener("contextmenu", (ev) => ev.preventDefault());
+  img.addEventListener("mousedown", (ev) => {
+    ev.preventDefault();
+    img.focus();
+    const { x, y } = normalizedCoords(ev, img);
+    const btn = ev.button === 2 ? 3 : ev.button === 1 ? 2 : 1;
+    sendConsoleInput({ type: "mousedown", x, y, button: btn });
+  });
+  img.addEventListener("mouseup", (ev) => {
+    ev.preventDefault();
+    const { x, y } = normalizedCoords(ev, img);
+    const btn = ev.button === 2 ? 3 : ev.button === 1 ? 2 : 1;
+    sendConsoleInput({ type: "mouseup", x, y, button: btn });
+  });
+  img.addEventListener("mousemove", (ev) => {
+    const now = performance.now();
+    if (now - consoleState.lastMove < 50) return;
+    consoleState.lastMove = now;
+    const { x, y } = normalizedCoords(ev, img);
+    sendConsoleInput({ type: "mousemove", x, y });
+  });
+  img.addEventListener("wheel", (ev) => {
+    ev.preventDefault();
+    const { x, y } = normalizedCoords(ev, img);
+    sendConsoleInput({ type: "wheel", x, y, deltaY: ev.deltaY });
+  }, { passive: false });
+  img.addEventListener("keydown", (ev) => {
+    ev.preventDefault();
+    sendConsoleInput({ type: "keydown", key: ev.key });
+  });
+  img.addEventListener("keyup", (ev) => {
+    ev.preventDefault();
+    sendConsoleInput({ type: "keyup", key: ev.key });
+  });
+})();
+
+document.getElementById("consoleTextForm").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const input = document.getElementById("consoleTextInput");
+  const text = input.value;
+  if (!text) return;
+  sendConsoleInput({ type: "text", text });
+  input.value = "";
+  document.getElementById("consoleScreen").focus();
+});
+
+document.getElementById("consoleFullscreen").addEventListener("click", () => {
+  const stage = document.getElementById("consoleStage");
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  } else {
+    stage.requestFullscreen().catch(() => {});
+  }
+});
+
+document.getElementById("consoleClose").addEventListener("click", closeConsoleModal);
 
 // ---------------------------------------------------------------- language
 document.getElementById("langSelect").value = state.lang;

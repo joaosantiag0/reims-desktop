@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from reims_gui.core.ctl_client import ReimsCtlClient
@@ -36,6 +36,7 @@ from reims_gui.core.models import DoctorHealth, GpuDevice, NewVmRequest, VmInfo
 from reims_gui.core.system_stats import SystemStatsSampler
 from reims_gui.i18n.translator import Translator
 
+from reims_web import console as vm_console
 from reims_web.auth import AuthManager, read_password_from_sources
 
 logger = logging.getLogger(__name__)
@@ -258,9 +259,56 @@ def create_app(
 
     @app.get("/api/vms/{name}/console", dependencies=[Depends(require_auth)])
     def console(name: str) -> Dict[str, Any]:
-        # noVNC groundwork: requires the guest's QEMU process to listen on a VNC
-        # socket/port (upstream reims-vgpu currently opens a local window).
-        return {"available": False, "reason": "console_vnc_unavailable", "name": name}
+        if not vm_console.is_console_available(mock=mock):
+            return {"available": False, "reason": "console_display_unavailable", "name": name}
+        width, height = vm_console.get_screen_size(mock=mock)
+        return {
+            "available": True,
+            "name": name,
+            "stream_url": f"/api/vms/{name}/screen.mjpeg",
+            "input_url": f"/api/vms/{name}/input",
+            "width": width,
+            "height": height,
+        }
+
+    @app.get("/api/vms/{name}/screen.mjpeg")
+    async def screen_mjpeg(name: str, request: Request, token: str = "") -> StreamingResponse:
+        if auth.enabled:
+            auth_header = request.headers.get("Authorization", "")
+            bearer = auth_header[7:].strip() if auth_header.startswith("Bearer ") else ""
+            if not auth.validate_token(bearer or token):
+                raise HTTPException(status_code=401, detail="unauthorized")
+        if not vm_console.is_console_available(mock=mock):
+            raise HTTPException(status_code=503, detail="console_display_unavailable")
+
+        async def _frame_stream():
+            while True:
+                if await request.is_disconnected():
+                    break
+                frame = await asyncio.to_thread(vm_console.capture_jpeg_frame, 65, mock)
+                if frame:
+                    yield (
+                        b"--frame\r\n"
+                        b"Content-Type: image/jpeg\r\n"
+                        + f"Content-Length: {len(frame)}\r\n\r\n".encode("ascii")
+                        + frame
+                        + b"\r\n"
+                    )
+                if mock:
+                    break
+                await asyncio.sleep(0.08)
+
+        return StreamingResponse(
+            _frame_stream(),
+            media_type="multipart/x-mixed-replace; boundary=frame",
+        )
+
+    @app.post("/api/vms/{name}/input", dependencies=[Depends(require_auth)])
+    async def console_input(name: str, body: Dict[str, Any]) -> Dict[str, bool]:
+        ok = await asyncio.to_thread(vm_console.send_input, body, mock)
+        if not ok:
+            raise HTTPException(status_code=400, detail="input_failed")
+        return {"ok": True}
 
     @app.get("/api/doctor", dependencies=[Depends(require_auth)])
     def doctor() -> Dict[str, Any]:
