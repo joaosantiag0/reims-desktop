@@ -67,6 +67,15 @@ if [[ -n "${INSTALLER_PATH}" && -f "${INSTALLER_PATH}" ]]; then
         -drive "file=${INSTALLER_PATH},media=cdrom,readonly=on"
         -boot order=dc
     )
+else
+    echo "=============================================" >&2
+    echo "AVISO: VM '${VM_NAME}' sem instalador anexado." >&2
+    echo "O disco está vazio — a tela ficará preta porque" >&2
+    echo "não há sistema para dar boot." >&2
+    echo "Crie com:  reims-ctl create ${VM_NAME} --installer=/caminho/instalador.iso" >&2
+    echo "Ou baixe o recovery do macOS (do seu lado):" >&2
+    echo "  reims-util online-installer" >&2
+    echo "=============================================" >&2
 fi
 
 # Modo VM solo: pausa/encerra o desktop (só o QEMU fica na tela, em tela

@@ -10,20 +10,41 @@ DIST_DIR="${REPO_ROOT}/dist"
 STAGE_DIR="${REPO_ROOT}/build/stage-reims-vgpu"
 SRC_CACHE="${REPO_ROOT}/build/reims-vgpu-src"
 
-UPSTREAM_BUILD=false
+UPSTREAM_BUILD=""
 for arg in "${@:-}"; do
     case "${arg}" in
         --upstream)
             UPSTREAM_BUILD=true
+            ;;
+        --stable|--simulated)
+            UPSTREAM_BUILD=false
             ;;
         *)
             ;;
     esac
 done
 
-# Só compila upstream se explicitamente solicitado E se estiver em Linux x86_64
-if [[ "$(uname -s)" != "Linux" ]] || [[ "$(uname -m)" != "x86_64" ]]; then
-    UPSTREAM_BUILD=false
+# Padrão: upstream em Linux x86_64 (host real de build da ISO), simulado fora.
+# Isso garante que a ISO instale o stack REAL (reims-ctl/reims-util Rust + QEMU
+# custom com vGPU) — nada de stubs no sistema instalado.
+# REIMS_STABLE=1 (ou --stable) força o modo simulado p/ CI/testes sem toolchain.
+if [[ -z "${UPSTREAM_BUILD}" ]]; then
+    if [[ "${REIMS_STABLE:-0}" == "1" ]]; then
+        UPSTREAM_BUILD=false
+    elif [[ "$(uname -s)" == "Linux" ]] && [[ "$(uname -m)" == "x86_64" ]]; then
+        UPSTREAM_BUILD=true
+    else
+        UPSTREAM_BUILD=false
+    fi
+fi
+
+# Garante toolchain Rust quando for compilar upstream (ex.: build como root no
+# host da ISO, sem cargo ainda).
+if [[ "${UPSTREAM_BUILD}" == "true" ]] && ! command -v cargo >/dev/null 2>&1; then
+    echo "==> cargo não encontrado; instalando rustup (toolchain mínima)..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+    # shellcheck disable=SC1091
+    source "${HOME}/.cargo/env"
 fi
 
 echo "==> Iniciando compilação do pacote reims-vgpu (amd64)..."
