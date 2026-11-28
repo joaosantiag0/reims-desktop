@@ -461,18 +461,52 @@ do_wrap() {
     exit "${rc}"
 }
 
+_pid_alive() {
+    local p="$1" st=""
+    kill -0 "${p}" 2>/dev/null || return 1
+    st="$(ps -o stat= -p "${p}" 2>/dev/null | tr -d ' ')"
+    [[ -n "${st}" && "${st}" != Z* ]]
+}
+
+do_watch_pid() {
+    local pidfile="${1:-}"
+    if [[ -z "${pidfile}" ]]; then
+        echo "uso: reims-desktop-suspend watch-pid <pidfile>" >&2
+        exit 2
+    fi
+    local wait_s=0 pid=""
+    while (( wait_s < 15 )); do
+        if [[ -s "${pidfile}" ]]; then
+            pid="$(tr -d '[:space:]' < "${pidfile}" 2>/dev/null || true)"
+            if [[ "${pid}" =~ ^[0-9]+$ ]] && _pid_alive "${pid}"; then
+                break
+            fi
+        fi
+        sleep 1
+        wait_s=$((wait_s + 1))
+    done
+    if [[ "${pid}" =~ ^[0-9]+$ ]]; then
+        while _pid_alive "${pid}"; do
+            sleep 1
+        done
+    fi
+    do_resume
+}
+
 CMD="${1:-help}"
 shift || true
 
 case "${CMD}" in
     --as-root) as_root_helper "$@" ;;
-    pause)  do_pause "$@" ;;
-    resume) do_resume "$@" ;;
-    status) do_status "$@" ;;
-    wrap)   do_wrap "$@" ;;
+    pause)     do_pause "$@" ;;
+    resume)    do_resume "$@" ;;
+    status)    do_status "$@" ;;
+    wrap)      do_wrap "$@" ;;
+    watch-pid) do_watch_pid "$@" ;;
     *)
-        echo "Uso: reims-desktop-suspend {pause [--kill]|resume|status|wrap [--kill] <comando...>}"
+        echo "Uso: reims-desktop-suspend {pause [--kill]|resume|status|wrap [--kill] <comando...>|watch-pid <pidfile>}"
         echo "Suspende/restaura o desktop LXQt enquanto uma VM roda (Modo VM do Reims Desktop)."
-        echo "  wrap: roda um comando como app único (pausa antes, restaura quando ele sai)."
+        echo "  wrap:      roda um comando como app único (pausa antes, restaura quando ele sai)."
+        echo "  watch-pid: aguarda o PID do QEMU encerrar e restaura o desktop automaticamente."
         ;;
 esac

@@ -217,6 +217,8 @@ class MainWindow(QMainWindow):
             # Remember it so Reims Desktop can offer to reopen it next boot.
             prefs.set_last_vm(name)
             self.refresh_data()
+            if hasattr(self, "showMinimized"):
+                self.showMinimized()
 
     def _handle_stop_vm(self, name: str):
         success = self.client.stop_vm(name)

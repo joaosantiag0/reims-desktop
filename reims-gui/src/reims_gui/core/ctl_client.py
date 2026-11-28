@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
 from reims_gui.core.models import (
@@ -64,10 +65,13 @@ def suspend_desktop_for_vm() -> None:
     if not binary:
         return
     try:
+        env = dict(os.environ)
+        env.setdefault("REIMS_VM_MODE", "kill")
         subprocess.run(
             [binary, "pause"],
             check=False,
             timeout=15,
+            env=env,
             capture_output=True,
             text=True,
         )
@@ -461,17 +465,12 @@ class ReimsCtlClient:
             # (idempotent no-op when REIMS_VM_MODE=off or nothing to suspend).
             suspend_desktop_for_vm()
             if self.backend == "upstream":
-                # The upstream ctl may stay attached to QEMU where no systemd user
-                # manager lingers (e.g. over SSH): never wait for it, and never kill it.
-                # VM solo mode: when the suspend helper is available, wrap the ctl
-                # call so the desktop is suspended while the VM runs and restored
-                # automatically when the QEMU window closes (ctl stays attached).
-                suspend_bin = find_suspend_binary()
-                cmd = [self.binary_path, "start", name]
-                if suspend_bin:
-                    cmd = [suspend_bin, "wrap", *cmd]
+                # Upstream `reims-ctl start` daemonizes QEMU and exits right away,
+                # so wrapping it with `wrap` would resume the desktop immediately.
+                # Instead, start QEMU and spawn `watch-pid` to restore the desktop
+                # when QEMU actually exits.
                 proc = subprocess.Popen(
-                    cmd,
+                    [self.binary_path, "start", name],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                     env=env,
@@ -479,10 +478,25 @@ class ReimsCtlClient:
                 )
                 try:
                     code = proc.wait(timeout=10)
-                    return code == 0
+                    started = code == 0
                 except subprocess.TimeoutExpired:
                     # Still attached: the VM window is running, so this is success.
-                    return True
+                    started = True
+
+                if started:
+                    suspend_bin = find_suspend_binary()
+                    if suspend_bin:
+                        pidfile = Path.home() / ".local" / "share" / "reims-ctl" / "vms" / name / "qemu.pid"
+                        subprocess.Popen(
+                            [suspend_bin, "watch-pid", str(pidfile)],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                            env=env,
+                            start_new_session=True,
+                        )
+                else:
+                    resume_desktop_after_vm()
+                return started
             res = subprocess.run(
                 [self.binary_path, "start", name],
                 check=True,

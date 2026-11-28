@@ -318,19 +318,22 @@ class TestVMDesktopSuspendIntegration(unittest.TestCase):
             self.assertEqual(subcommands[-1], "resume")
 
     def test_start_vm_upstream_wraps_with_suspend(self):
-        """Solo mode: upstream start is wrapped so the desktop returns when the
-        QEMU window closes (ctl stays attached to qemu)."""
+        """Solo mode: upstream start daemonizes QEMU, then watch-pid restores
+        the desktop when the QEMU process exits."""
         with mock.patch.object(ctl_client, "detect_ctl_backend", return_value="upstream"), \
              mock.patch.object(ctl_client.subprocess, "Popen") as popen_mock:
             popen_mock.return_value = mock.Mock(wait=mock.Mock(return_value=0))
             client = self._make_client()
             self.assertTrue(client.start_vm("Some-VM"))
-        cmd = popen_mock.call_args.args[0]
-        self.assertEqual(cmd[1], "wrap")
-        self.assertEqual(cmd[2], client.binary_path)
-        self.assertEqual(cmd[-2:], ["start", "Some-VM"])
-        kwargs = popen_mock.call_args.kwargs
-        self.assertTrue(kwargs.get("start_new_session"))
+        self.assertGreaterEqual(popen_mock.call_count, 2)
+        start_call, watch_call = popen_mock.call_args_list[-2:]
+        self.assertEqual(start_call.args[0], [client.binary_path, "start", "Some-VM"])
+        self.assertTrue(start_call.kwargs.get("start_new_session"))
+        watch_cmd = watch_call.args[0]
+        self.assertEqual(watch_cmd[0], self.fake_bin)
+        self.assertEqual(watch_cmd[1], "watch-pid")
+        self.assertTrue(watch_cmd[2].endswith("Some-VM/qemu.pid"))
+        self.assertTrue(watch_call.kwargs.get("start_new_session"))
 
 
 if __name__ == "__main__":

@@ -479,6 +479,24 @@ class TestCTLStartScriptSoloMode(unittest.TestCase):
         # pid.txt must contain the real qemu pid, not the launcher's
         self.assertIn('echo "${QEMU_PID}" > "${VM_DIR}/pid.txt"', content)
 
+    def test_watch_pid_resumes_when_process_exits(self):
+        proc = subprocess.Popen(["python3", "-c", "import time; time.sleep(1)"])
+        try:
+            with tempfile.TemporaryDirectory() as state_dir:
+                pidfile = Path(state_dir) / "qemu.pid"
+                pidfile.write_text(str(proc.pid))
+                res_pause = run_suspend(["pause"], state_dir=state_dir)
+                self.assertEqual(res_pause.returncode, 0)
+                proc.wait(timeout=10)
+                res_watch = run_suspend(["watch-pid", str(pidfile)], state_dir=state_dir)
+                self.assertEqual(res_watch.returncode, 0, res_watch.stderr)
+                self.assertIn("restaurado", res_watch.stdout)
+                self.assertFalse((Path(state_dir) / "reims-vm-desktop.state").exists())
+        finally:
+            if proc.poll() is None:
+                proc.terminate()
+            proc.wait(timeout=10)
+
 
 if __name__ == "__main__":
     unittest.main()
