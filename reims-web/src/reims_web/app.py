@@ -328,6 +328,27 @@ def create_app(
     def vm_logs(name: str, tail: int = 120) -> Dict[str, Any]:
         return {"name": name, "lines": host_info.read_vm_logs(name, tail_lines=tail, mock=mock)}
 
+    @app.get("/api/vms/{name}/settings", dependencies=[Depends(require_auth)])
+    def get_vm_settings(name: str) -> Dict[str, Any]:
+        vm = next((v for v in ctl.list_vms() if v.name == name), None)
+        if vm is None and not mock:
+            raise HTTPException(status_code=404, detail="vm_not_found")
+        try:
+            return host_info.read_vm_settings(name, vm=vm, mock=mock)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="vm_settings_not_found")
+
+    @app.patch("/api/vms/{name}/settings", dependencies=[Depends(require_auth)])
+    def patch_vm_settings(name: str, body: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            return host_info.update_vm_settings(
+                name, body, ctl_binary=ctl.binary_path, mock=mock
+            )
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="vm_settings_not_found")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
     @app.get("/api/stats", dependencies=[Depends(require_auth)])
     def stats() -> Dict[str, Any]:
         sample = sampler.sample()

@@ -279,11 +279,14 @@ export function App() {
           {page === "vm-detail" && selectedVm && (
             <VmDetailPage
               vm={selectedVm}
+              host={host}
+              gpus={gpus}
               statsHistory={statsHistory}
               onBack={() => setPage("vms")}
               onStart={(n) => runVmAction(n, "start", () => api.startVm(n), `VM "${n}" iniciada`)}
               onStop={(n, f) => runVmAction(n, "stop", () => api.stopVm(n, f), `VM "${n}" parada`)}
               onOpenConsole={handleOpenConsole}
+              onRefresh={refreshAll}
               onToast={addToast}
             />
           )}

@@ -8,6 +8,7 @@ import type {
   HostOverview,
   StatsSample,
   VmInfo,
+  VmSettings,
   VmSnapshot,
 } from "@/types/vm";
 
@@ -148,6 +149,20 @@ export async function getVmLogs(name: string, tail = 120): Promise<string[]> {
     `/api/vms/${encodeURIComponent(name)}/logs?tail=${tail}`
   );
   return res.lines;
+}
+
+export async function getVmSettings(name: string): Promise<VmSettings> {
+  return request(`/api/vms/${encodeURIComponent(name)}/settings`);
+}
+
+export async function updateVmSettings(
+  name: string,
+  settings: Partial<VmSettings>
+): Promise<VmSettings> {
+  return request(`/api/vms/${encodeURIComponent(name)}/settings`, {
+    method: "PATCH",
+    body: JSON.stringify(settings),
+  });
 }
 
 export async function getConsoleInfo(name: string): Promise<ConsoleInfo> {

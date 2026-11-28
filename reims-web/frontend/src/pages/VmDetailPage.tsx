@@ -7,6 +7,7 @@ import {
   Info,
   Play,
   RefreshCw,
+  Save,
   Settings,
   Square,
   Terminal,
@@ -14,32 +15,40 @@ import {
 } from "lucide-react";
 import { Button, Card } from "@/components/ui/Primitives";
 import * as api from "@/services/api";
-import type { StatsSample, VmInfo, VmSnapshot } from "@/types/vm";
+import type { GpuDevice, HostOverview, StatsSample, VmInfo, VmSettings, VmSnapshot } from "@/types/vm";
 import { STATUS_META, formatUptime } from "@/utils/format";
 
 type DetailTab = "overview" | "performance" | "console" | "snapshots" | "settings" | "logs";
 
 export function VmDetailPage({
   vm,
+  host,
+  gpus,
   statsHistory,
   onBack,
   onStart,
   onStop,
   onOpenConsole,
+  onRefresh,
   onToast,
 }: {
   vm: VmInfo;
+  host: HostOverview | null;
+  gpus: GpuDevice[];
   statsHistory: StatsSample[];
   onBack: () => void;
   onStart: (name: string) => void;
   onStop: (name: string, force?: boolean) => void;
   onOpenConsole: (name: string) => void;
+  onRefresh: () => void;
   onToast: (kind: "success" | "error" | "info", title: string, desc?: string) => void;
 }) {
   const [tab, setTab] = useState<DetailTab>("overview");
   const [logs, setLogs] = useState<string[]>([]);
   const [snapshots, setSnapshots] = useState<VmSnapshot[]>(() => api.listSnapshots(vm.name));
   const [snapName, setSnapName] = useState("");
+  const [settings, setSettings] = useState<VmSettings | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
   const meta = STATUS_META[vm.status] || STATUS_META.stopped;
 
   const loadLogs = async () => {
@@ -51,9 +60,39 @@ export function VmDetailPage({
     }
   };
 
+  const loadSettings = async () => {
+    try {
+      const data = await api.getVmSettings(vm.name);
+      setSettings(data);
+    } catch (e) {
+      onToast("error", "Não foi possível ler as configurações da VM", String(e));
+    }
+  };
+
   useEffect(() => {
     if (tab === "logs") loadLogs();
+    if (tab === "settings") loadSettings();
   }, [tab, vm.name]);
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!settings) return;
+    setSavingSettings(true);
+    try {
+      const updated = await api.updateVmSettings(vm.name, settings);
+      setSettings(updated);
+      onRefresh();
+      onToast(
+        "success",
+        "Configurações salvas",
+        "As alterações serão aplicadas na próxima inicialização da VM."
+      );
+    } catch (err) {
+      onToast("error", "Erro ao salvar configurações", String(err));
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const handleCreateSnap = () => {
     if (!snapName.trim()) return;
@@ -249,17 +288,175 @@ export function VmDetailPage({
       )}
 
       {tab === "settings" && (
-        <Card className="p-5 space-y-3 text-xs">
-          <h3 className="text-sm font-semibold text-white">Configurações da VM</h3>
-          <p className="text-slate-400">
-            Edição dinâmica via API ainda não suportada pelo `reims-ctl` — utilize `vm.toml` no host ou recrie a VM pelo Wizard.
-          </p>
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-[#292A3A] bg-[#090A10] p-4">
-            <div><span className="text-slate-400">vCPUs:</span> <strong className="text-white">{vm.cpus}</strong></div>
-            <div><span className="text-slate-400">RAM:</span> <strong className="text-white">{vm.memory_gib} GB</strong></div>
-            <div><span className="text-slate-400">Gráficos:</span> <strong className="text-white">{vm.graphics}</strong></div>
-            <div><span className="text-slate-400">GPU:</span> <strong className="text-white">{vm.gpu_name || "Auto"}</strong></div>
+        <Card className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-white">Configurações da VM</h3>
+              <p className="text-xs text-slate-400">
+                Alterações são aplicadas via <code className="text-violet-300">reims-ctl set</code> e entram em vigor no próximo boot.
+              </p>
+            </div>
+            {vm.status === "running" && (
+              <span className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-300">
+                VM em execução — reinicie após salvar
+              </span>
+            )}
           </div>
+
+          {!settings ? (
+            <p className="py-6 text-xs text-slate-400">Carregando configurações...</p>
+          ) : (
+            <form onSubmit={handleSaveSettings} className="space-y-5 text-xs">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block font-medium text-slate-300">
+                    vCPUs (máx. {host?.cpu.threads ?? 16})
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={host?.cpu.threads ?? 32}
+                    value={settings.cpus}
+                    onChange={(e) => setSettings({ ...settings, cpus: Number(e.target.value) })}
+                    className="w-full rounded-xl border border-[#292A3A] bg-[#090A10] px-3 py-2 text-sm text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block font-medium text-slate-300">
+                    Memória RAM (MiB — {Math.round(settings.memory_mib / 1024)} GB)
+                  </label>
+                  <input
+                    type="number"
+                    min={2048}
+                    step={1024}
+                    max={(host?.memory.total_bytes ? Math.floor(host.memory.total_bytes / 1024 ** 3) : 64) * 1024}
+                    value={settings.memory_mib}
+                    onChange={(e) => setSettings({ ...settings, memory_mib: Number(e.target.value) })}
+                    className="w-full rounded-xl border border-[#292A3A] bg-[#090A10] px-3 py-2 text-sm text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block font-medium text-slate-300">
+                    Driver Gráfico
+                  </label>
+                  <select
+                    value={settings.graphics}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        graphics: e.target.value as "reims-vgpu" | "vmware-svga",
+                      })
+                    }
+                    className="w-full rounded-xl border border-[#292A3A] bg-[#090A10] px-3 py-2 text-sm text-white"
+                  >
+                    <option value="reims-vgpu">reims-vgpu (Vulkan acelerado)</option>
+                    <option value="vmware-svga">vmware-svga (sem aceleração GPU)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block font-medium text-slate-300">
+                    GPU Física
+                  </label>
+                  <select
+                    value={settings.gpu_name || ""}
+                    onChange={(e) => setSettings({ ...settings, gpu_name: e.target.value || null })}
+                    className="w-full rounded-xl border border-[#292A3A] bg-[#090A10] px-3 py-2 text-sm text-white"
+                  >
+                    <option value="">Automático (melhor GPU Vulkan)</option>
+                    {gpus.map((g) => (
+                      <option key={g.id_string} value={g.name}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block font-medium text-slate-300">
+                    Resolução da Janela
+                  </label>
+                  <select
+                    value={settings.resolution}
+                    onChange={(e) => setSettings({ ...settings, resolution: e.target.value })}
+                    className="w-full rounded-xl border border-[#292A3A] bg-[#090A10] px-3 py-2 text-sm text-white"
+                  >
+                    <option value="1920x1080">1920×1080 (Full HD)</option>
+                    <option value="2560x1440">2560×1440 (QHD)</option>
+                    <option value="1600x900">1600×900</option>
+                    <option value="1280x720">1280×720 (HD)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block font-medium text-slate-300">
+                    Controladora de Disco
+                  </label>
+                  <select
+                    value={settings.disk_controller}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        disk_controller: e.target.value as "ahci" | "nvme" | "virtio",
+                      })
+                    }
+                    className="w-full rounded-xl border border-[#292A3A] bg-[#090A10] px-3 py-2 text-sm text-white"
+                  >
+                    <option value="ahci">AHCI (SATA — padrão compatível)</option>
+                    <option value="nvme">NVMe</option>
+                    <option value="virtio">VirtIO-blk (macOS 26 já instalado)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block font-medium text-slate-300">
+                    Porta SSH (0 = desativada)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={65535}
+                    value={settings.ssh_port}
+                    onChange={(e) => setSettings({ ...settings, ssh_port: Number(e.target.value) })}
+                    className="w-full rounded-xl border border-[#292A3A] bg-[#090A10] px-3 py-2 text-sm text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  { key: "audio_enabled", label: "Áudio (PipeWire)" },
+                  { key: "network_enabled", label: "Rede (virtio-net)" },
+                  { key: "borderless", label: "Janela sem bordas" },
+                  { key: "logs_enabled", label: "Logs detalhados vGPU" },
+                ].map((opt) => (
+                  <label
+                    key={opt.key}
+                    className="flex items-center gap-2.5 rounded-xl border border-[#292A3A] bg-[#090A10] px-3 py-2.5 text-slate-200 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={Boolean(settings[opt.key as keyof VmSettings])}
+                      onChange={(e) =>
+                        setSettings({ ...settings, [opt.key]: e.target.checked })
+                      }
+                      className="h-4 w-4 accent-violet-500"
+                    />
+                    <span>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex justify-end border-t border-[#292A3A] pt-4">
+                <Button type="submit" variant="primary" loading={savingSettings}>
+                  <Save className="h-4 w-4" />
+                  Salvar Configurações
+                </Button>
+              </div>
+            </form>
+          )}
         </Card>
       )}
 

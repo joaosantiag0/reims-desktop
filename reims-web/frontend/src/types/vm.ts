@@ -120,6 +120,20 @@ export interface ConsoleInfo {
   reason?: string;
 }
 
+export interface VmSettings {
+  cpus: number;
+  memory_mib: number;
+  graphics: "reims-vgpu" | "vmware-svga";
+  gpu_name: string | null;
+  resolution: string;
+  borderless: boolean;
+  audio_enabled: boolean;
+  network_enabled: boolean;
+  ssh_port: number;
+  disk_controller: "ahci" | "nvme" | "virtio";
+  logs_enabled: boolean;
+}
+
 export interface VmSnapshot {
   id: string;
   vm_name: string;

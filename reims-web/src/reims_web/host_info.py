@@ -10,8 +10,14 @@ import os
 import platform
 import shutil
 import socket
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+try:
+    import tomllib  # Python 3.11+
+except ImportError:  # pragma: no cover
+    tomllib = None  # type: ignore[assignment]
 
 from reims_gui.core.models import VmInfo
 
@@ -153,3 +159,102 @@ def read_vm_logs(name: str, tail_lines: int = 120, mock: bool = False) -> List[s
         return []
     lines = log_path.read_text(errors="ignore").splitlines()
     return lines[-tail_lines:]
+
+
+def read_vm_settings(name: str, vm: Optional[VmInfo] = None, mock: bool = False) -> Dict[str, Any]:
+    if mock or tomllib is None:
+        return {
+            "cpus": vm.cpus if vm else 4,
+            "memory_mib": vm.memory_mib if vm else 8192,
+            "graphics": vm.graphics.value if vm else "reims-vgpu",
+            "gpu_name": vm.gpu_name if vm else None,
+            "resolution": "1920x1080",
+            "borderless": False,
+            "audio_enabled": True,
+            "network_enabled": True,
+            "ssh_port": vm.ssh_port or 0 if vm else 0,
+            "disk_controller": "ahci",
+            "logs_enabled": False,
+        }
+
+    toml_path = _vms_root() / name / "vm.toml"
+    if not toml_path.is_file():
+        raise FileNotFoundError(f"vm.toml not found for {name}")
+
+    data = tomllib.loads(toml_path.read_text(encoding="utf-8", errors="ignore"))
+    display = data.get("display", {})
+    gpu = data.get("gpu", {})
+    audio = data.get("audio", {})
+    network = data.get("network", {})
+    logs = data.get("logs", {})
+    q35 = data.get("q35", {})
+
+    return {
+        "cpus": int(data.get("cpus", vm.cpus if vm else 4)),
+        "memory_mib": int(data.get("memory_mib", vm.memory_mib if vm else 8192)),
+        "graphics": str(data.get("graphics", "reims-vgpu")),
+        "gpu_name": gpu.get("name") or None,
+        "resolution": str(display.get("resolution", "1920x1080")),
+        "borderless": bool(display.get("borderless", False)),
+        "audio_enabled": bool(audio.get("enabled", True)),
+        "network_enabled": bool(network.get("enabled", True)),
+        "ssh_port": int(network.get("ssh_port", 0) or 0),
+        "disk_controller": str(q35.get("disk_controller", "ahci")),
+        "logs_enabled": bool(logs.get("enabled", False)),
+    }
+
+
+def update_vm_settings(
+    name: str,
+    payload: Dict[str, Any],
+    ctl_binary: str,
+    mock: bool = False,
+) -> Dict[str, Any]:
+    if mock:
+        return {
+            "cpus": int(payload.get("cpus", 4)),
+            "memory_mib": int(payload.get("memory_mib", 8192)),
+            "graphics": str(payload.get("graphics", "reims-vgpu")),
+            "gpu_name": payload.get("gpu_name") or None,
+            "resolution": str(payload.get("resolution", "1920x1080")),
+            "borderless": bool(payload.get("borderless", False)),
+            "audio_enabled": bool(payload.get("audio_enabled", True)),
+            "network_enabled": bool(payload.get("network_enabled", True)),
+            "ssh_port": int(payload.get("ssh_port", 0) or 0),
+            "disk_controller": str(payload.get("disk_controller", "ahci")),
+            "logs_enabled": bool(payload.get("logs_enabled", False)),
+        }
+
+    args: List[str] = [ctl_binary, "set", name]
+    if "cpus" in payload:
+        cpus = max(1, int(payload["cpus"]))
+        args.extend(["--cpus", str(cpus)])
+    if "memory_mib" in payload:
+        mem = max(2048, int(payload["memory_mib"]))
+        args.extend(["--memory", f"{mem}M"])
+    if "graphics" in payload and payload["graphics"] in ("reims-vgpu", "vmware-svga"):
+        args.extend(["--graphics", str(payload["graphics"])])
+    if "gpu_name" in payload:
+        gpu_val = str(payload["gpu_name"]).strip() if payload["gpu_name"] else "auto"
+        args.extend(["--gpu", gpu_val or "auto"])
+    if "resolution" in payload and payload["resolution"]:
+        args.extend(["--resolution", str(payload["resolution"]).strip()])
+    if "borderless" in payload:
+        args.extend(["--borderless", "true" if payload["borderless"] else "false"])
+    if "audio_enabled" in payload:
+        args.extend(["--audio", "true" if payload["audio_enabled"] else "false"])
+    if "network_enabled" in payload:
+        args.extend(["--network", "true" if payload["network_enabled"] else "false"])
+    if "ssh_port" in payload:
+        args.extend(["--ssh-port", str(max(0, int(payload["ssh_port"] or 0)))])
+    if "disk_controller" in payload and payload["disk_controller"] in ("ahci", "nvme", "virtio"):
+        args.extend(["--disk-controller", str(payload["disk_controller"])])
+    if "logs_enabled" in payload:
+        args.extend(["--logs", "true" if payload["logs_enabled"] else "false"])
+
+    res = subprocess.run(args, capture_output=True, text=True, timeout=30)
+    if res.returncode != 0:
+        err = (res.stderr or res.stdout or "reims-ctl set failed").strip()
+        raise RuntimeError(err)
+
+    return read_vm_settings(name, mock=False)
