@@ -41,6 +41,7 @@ class MainWindow(QMainWindow):
         self.updater = SystemUpdater()
         self.translator = Translator.get_instance()
         self.cards: List[VmCard] = []
+        self._active_vm_name: Optional[str] = None
         # CLI override: when True, start the last VM without prompting.
         self.open_last_vm_flag = bool(open_last_vm)
 
@@ -185,6 +186,18 @@ class MainWindow(QMainWindow):
         vms = self.client.list_vms()
         self._render_vms(vms)
 
+        # 4. Restore window when the started VM exits
+        if self._active_vm_name:
+            active_vm = next((v for v in vms if v.name == self._active_vm_name), None)
+            if active_vm is None or active_vm.status != VmStatus.RUNNING:
+                self._active_vm_name = None
+                if hasattr(self, "showNormal"):
+                    self.showNormal()
+                if hasattr(self, "raise_"):
+                    self.raise_()
+                if hasattr(self, "activateWindow"):
+                    self.activateWindow()
+
     def _render_vms(self, vms: List[VmInfo]):
         # Clear existing items in grid
         for card in self.cards:
@@ -216,6 +229,7 @@ class MainWindow(QMainWindow):
         if success:
             # Remember it so Reims Desktop can offer to reopen it next boot.
             prefs.set_last_vm(name)
+            self._active_vm_name = name
             self.refresh_data()
             if hasattr(self, "showMinimized"):
                 self.showMinimized()

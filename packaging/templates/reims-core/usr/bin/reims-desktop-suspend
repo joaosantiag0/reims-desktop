@@ -249,7 +249,7 @@ relaunch() {
     local name="$1"
     case "${name}" in
         pcmanfm-qt)
-            ( pcmanfm-qt --desktop >/dev/null 2>&1 < /dev/null & ) ;;
+            ( pcmanfm-qt --desktop --profile=lxqt >/dev/null 2>&1 < /dev/null & ) ;;
         *)
             ( "${name}" >/dev/null 2>&1 < /dev/null & ) ;;
     esac
