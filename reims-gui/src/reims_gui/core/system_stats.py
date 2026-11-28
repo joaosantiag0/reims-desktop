@@ -90,6 +90,21 @@ def parse_vm_stat(text: str) -> Tuple[float, float]:
         logger.debug(f"sysctl hw.memsize failed: {e}")
 
     if total_b <= 0:
+        # Sem sysctl (ex.: CI Linux, mocks): estima o total somando as classes
+        # principais de páginas do próprio vm_stat — suficiente para testes e
+        # ambientes onde o sysctl BSD não existe.
+        total_b = (
+            pages("Pages free")
+            + pages("Pages active")
+            + pages("Pages inactive")
+            + pages("Pages speculative")
+            + pages("Pages wired down")
+            + pages("Pages compressed")
+            + pages("Pages purgeable")
+            + pages("Pages occupied by compressor")
+        ) * page_size
+
+    if total_b <= 0:
         raise ValueError("could not determine total RAM via sysctl")
 
     # Available ~= free + inactive + speculative (what macOS can hand out fast).

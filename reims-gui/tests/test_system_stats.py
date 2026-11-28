@@ -69,6 +69,20 @@ class TestMacosParsers(unittest.TestCase):
         self.assertGreaterEqual(used, 0.0)
         self.assertLess(used, total)
 
+    def test_parse_vm_stat_falls_back_to_page_sum_without_sysctl(self):
+        """Sem sysctl (CI Linux/mock), o total vem da soma das páginas do sample."""
+        with mock.patch(
+            "reims_gui.core.system_stats.subprocess.run",
+            side_effect=FileNotFoundError("no sysctl here"),
+        ):
+            used, total = parse_vm_stat(VM_STAT_SAMPLE)
+        # Soma das classes: (12345+98765+4321+111+22222) * 16384 bytes
+        expected_total_gb = (12345 + 98765 + 4321 + 111 + 22222) * 16384 / (1024 ** 3)
+        self.assertAlmostEqual(total, expected_total_gb, places=6)
+        self.assertGreater(total, 0.0)
+        self.assertGreaterEqual(used, 0.0)
+        self.assertLess(used, total)
+
     def test_parse_top_cpu(self):
         self.assertAlmostEqual(parse_top_cpu(TOP_SAMPLE), 12.34 + 8.76, places=2)
 
