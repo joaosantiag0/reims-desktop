@@ -9,6 +9,20 @@ VERSION="0.1.0"
 VMS_BASE_DIR="${HOME}/.local/share/reims-ctl/vms"
 mkdir -p "${VMS_BASE_DIR}"
 
+# Modo VM: suspende/restaura o desktop LXQt enquanto a VM roda (ver
+# reims-desktop-suspend). Idempotente e best-effort: nunca quebra o ctl.
+SUSPEND_BIN="${REIMS_SUSPEND_BIN:-/usr/bin/reims-desktop-suspend}"
+vm_desktop_suspend() {
+    if [[ -x "${SUSPEND_BIN}" ]]; then
+        "${SUSPEND_BIN}" pause || true
+    fi
+}
+vm_desktop_resume() {
+    if [[ -x "${SUSPEND_BIN}" ]]; then
+        "${SUSPEND_BIN}" resume || true
+    fi
+}
+
 ensure_start_script() {
     local vm_dir="$1"
     local config_file="${vm_dir}/config.json"
@@ -42,6 +56,7 @@ QEMU_ARGS=(
     -m "${MEMORY_MIB}"
     -smp "${CPUS}"
     -vga virtio
+    --full-screen
     -drive "file=${DISK_PATH},format=qcow2,if=virtio"
 )
 
@@ -54,7 +69,29 @@ if [[ -n "${INSTALLER_PATH}" && -f "${INSTALLER_PATH}" ]]; then
     )
 fi
 
-exec "${QEMU_BIN}" "${QEMU_ARGS[@]}"
+# Modo VM solo: pausa/encerra o desktop (só o QEMU fica na tela, em tela
+# cheia) e, quando a janela da VM for fechada — ou o guest for desligado —
+# restaura automaticamente painel, apps e serviços.
+SUSPEND_BIN="${REIMS_SUSPEND_BIN:-/usr/bin/reims-desktop-suspend}"
+if [[ -x "${SUSPEND_BIN}" ]]; then
+    "${SUSPEND_BIN}" pause || true
+fi
+
+"${QEMU_BIN}" "${QEMU_ARGS[@]}" &
+QEMU_PID=$!
+echo "${QEMU_PID}" > "${VM_DIR}/pid.txt"
+
+# Supervisor: espera o QEMU sair (fechar a janela, shutdown do guest ou
+# reims-desktop-ctl stop) e devolve o desktop. Preserva o código de saída.
+set +e
+wait "${QEMU_PID}"
+QEMU_RC=$?
+set -e
+
+if [[ -x "${SUSPEND_BIN}" ]]; then
+    "${SUSPEND_BIN}" resume || true
+fi
+exit "${QEMU_RC}"
 EOF_START
     chmod +x "${vm_dir}/start.sh"
 }
@@ -248,6 +285,7 @@ EOF
 
         if [[ "${START_NOW}" == "true" ]]; then
             echo "==> Iniciando máquina virtual..."
+            vm_desktop_suspend
             export DISPLAY="${DISPLAY:-:0}"
             nohup "${VM_DIR}/start.sh" > "${VM_DIR}/vm.log" 2>&1 &
             echo $! > "${VM_DIR}/pid.txt"
@@ -267,6 +305,7 @@ EOF
         fi
         ensure_start_script "${VM_DIR}"
         echo "==> Iniciando VM '${VM_NAME}'..."
+        vm_desktop_suspend
         export DISPLAY="${DISPLAY:-:0}"
         nohup "${VM_DIR}/start.sh" > "${VM_DIR}/vm.log" 2>&1 &
         PID=$!
@@ -300,6 +339,7 @@ EOF
             rm -f "${PID_FILE}"
         fi
         pkill -f "qemu.*${VM_NAME}" 2>/dev/null || true
+        vm_desktop_resume
         echo "VM '${VM_NAME}' parada."
         ;;
 
@@ -312,6 +352,7 @@ EOF
         VM_DIR="${VMS_BASE_DIR}/${VM_NAME}"
         if [[ -d "${VM_DIR}" ]]; then
             "${0}" stop "${VM_NAME}" --force 2>/dev/null || true
+            vm_desktop_resume
             rm -rf "${VM_DIR}"
             echo "VM '${VM_NAME}' excluída."
         fi
@@ -319,6 +360,16 @@ EOF
 
     *)
         echo "Uso: reims-desktop-ctl {doctor|gpus|list [--json]|create <name> [opções]|start <name>|stop <name>|delete <name>}"
+        echo ""
+        echo "Modo VM (liberar CPU/RAM do desktop enquanto a VM roda):"
+        echo "  O desktop LXQt é pausado automaticamente no 'start' e restaurado no 'stop'."
+        echo "  O QEMU abre em TELA CHEIA como único app da tela; ao fechar a janela"
+        echo "  (ou desligar o guest), o desktop é restaurado automaticamente."
+        echo "  REIMS_VM_MODE=pause|kill|off  (pausa padrão; 'kill' encerra os módulos e"
+        echo "  libera também a RAM; 'off' mantém o desktop sempre ativo)"
+        echo "  REIMS_VM_SERVICES=on|off      (para/reinicia serviços do sistema como"
+        echo "  snapd, bluetooth, avahi, cups durante a VM; padrão: on)"
+        echo "  Manual: reims-desktop-suspend {pause [--kill]|resume|status}"
         exit 0
         ;;
 esac

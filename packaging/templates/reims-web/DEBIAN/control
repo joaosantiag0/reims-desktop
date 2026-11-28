@@ -1,0 +1,13 @@
+Package: reims-web
+Version: 0.1.0
+Section: utils
+Priority: optional
+Architecture: all
+Maintainer: Reims Desktop Team <dev@reims-desktop.org>
+Depends: python3 (>= 3.10), python3-fastapi, python3-uvicorn, reims-core (>= 0.1.0), reims-gui (>= 0.1.0)
+Description: Proxmox-style Web Console for Reims Desktop
+ Browser-based VM manager (FastAPI + vanilla JS SPA) listening on :8006,
+ reusing the Qt-free core layer of reims-gui to control reims-ctl:
+ live host charts, diagnostics, GPU list, VM lifecycle and creation wizard.
+ Reims Desktop is an independent community project with no affiliation with
+ Apple Inc. or the upstream Reims (steelbrain/reims-vgpu) project.

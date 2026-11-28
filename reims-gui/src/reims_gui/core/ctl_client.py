@@ -37,6 +37,63 @@ MACOS_RELEASE_MAP: Dict[str, str] = {
 }
 
 
+# VM-mode helper (reims-desktop-suspend): pauses/kills the LXQt desktop while a
+# VM runs and restores it afterwards, freeing CPU/RAM for the guest. Best-effort
+# and idempotent: safe to call regardless of backend (the bundled bash ctl also
+# does this on its own).
+_SUSPEND_BINARY_CANDIDATES = (
+    "/usr/bin/reims-desktop-suspend",
+    "reims-desktop-suspend",
+)
+
+
+def find_suspend_binary() -> Optional[str]:
+    path = os.environ.get("REIMS_SUSPEND_BIN") or ""
+    if path and (os.path.isfile(path) and os.access(path, os.X_OK)):
+        return path
+    for candidate in _SUSPEND_BINARY_CANDIDATES:
+        resolved = shutil.which(candidate) if "/" not in candidate else candidate
+        if resolved and os.path.isfile(resolved) and os.access(resolved, os.X_OK):
+            return resolved
+    return None
+
+
+def suspend_desktop_for_vm() -> None:
+    """Pause/kill the desktop right before a VM starts (best-effort, silent)."""
+    binary = find_suspend_binary()
+    if not binary:
+        return
+    try:
+        subprocess.run(
+            [binary, "pause"],
+            check=False,
+            timeout=15,
+            capture_output=True,
+            text=True,
+        )
+        logger.info("VM mode: desktop suspended for VM run")
+    except Exception as e:  # pragma: no cover - defensive: never block VM start
+        logger.debug(f"VM mode: could not suspend desktop: {e}")
+
+
+def resume_desktop_after_vm() -> None:
+    """Restore the desktop after a VM stops (best-effort, silent)."""
+    binary = find_suspend_binary()
+    if not binary:
+        return
+    try:
+        subprocess.run(
+            [binary, "resume"],
+            check=False,
+            timeout=30,
+            capture_output=True,
+            text=True,
+        )
+        logger.info("VM mode: desktop restored after VM stop")
+    except Exception as e:  # pragma: no cover - defensive: never block VM stop
+        logger.debug(f"VM mode: could not restore desktop: {e}")
+
+
 def detect_ctl_backend(binary_path: str) -> str:
     """Return "upstream" for the Rust reims-ctl, "desktop" for the bash fallback."""
     try:
@@ -400,14 +457,25 @@ class ReimsCtlClient:
             env = dict(os.environ)
             if "DISPLAY" not in env or not env["DISPLAY"]:
                 env["DISPLAY"] = ":0"
+            # VM mode: free CPU/RAM for the guest before the VM window opens
+            # (idempotent no-op when REIMS_VM_MODE=off or nothing to suspend).
+            suspend_desktop_for_vm()
             if self.backend == "upstream":
                 # The upstream ctl may stay attached to QEMU where no systemd user
                 # manager lingers (e.g. over SSH): never wait for it, and never kill it.
+                # VM solo mode: when the suspend helper is available, wrap the ctl
+                # call so the desktop is suspended while the VM runs and restored
+                # automatically when the QEMU window closes (ctl stays attached).
+                suspend_bin = find_suspend_binary()
+                cmd = [self.binary_path, "start", name]
+                if suspend_bin:
+                    cmd = [suspend_bin, "wrap", *cmd]
                 proc = subprocess.Popen(
-                    [self.binary_path, "start", name],
+                    cmd,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                     env=env,
+                    start_new_session=True,
                 )
                 try:
                     code = proc.wait(timeout=10)
@@ -427,6 +495,8 @@ class ReimsCtlClient:
             return True
         except Exception as e:
             logger.error(f"Failed to start VM {name}: {e}")
+            # VM mode: the VM did not start, so give the desktop back.
+            resume_desktop_after_vm()
             return False
 
     def stop_vm(self, name: str, force: bool = False) -> bool:
@@ -445,6 +515,8 @@ class ReimsCtlClient:
             timeout = 10 if self.backend == "desktop" else 120
             subprocess.run(cmd, check=True, timeout=timeout)
             self._show_cache.pop(name, None)
+            # VM mode: bring the desktop back once the guest is gone.
+            resume_desktop_after_vm()
             return True
         except Exception as e:
             logger.error(f"Failed to stop VM {name}: {e}")

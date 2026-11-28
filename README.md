@@ -47,6 +47,7 @@ All binaries in the project are standardized under the `reims-desktop*` prefix f
 ```text
 reims-desktop/
 ├── reims-gui/          # Qt6/PySide6 Graphical Interface (Reims Desktop) with i18n
+├── reims-web/          # Proxmox-style Web Console (FastAPI + vanilla JS SPA, :8006)
 ├── packaging/          # Debian packaging automation (.deb files)
 │   ├── templates/      # Base deb structures for reims-core, reims-gui, and reims-vgpu
 │   └── scripts/        # Build scripts to compile and package all .deb artifacts
@@ -136,11 +137,12 @@ For rapid development cycles and testing on physical machines or target laptops,
 This repository enforces strict code quality and automated test coverage rules (compliant with [agents.md](agents.md)):
 
 ```bash
-# Run all test suites (Core & APT repo, ISO builder, Reims Desktop GUI, and Debian Packaging)
+# Run all test suites (Core & APT repo, ISO builder, Reims Desktop GUI, Debian Packaging, and Web Console)
 python3 -m unittest discover -s tests -p "test_*.py"
 python3 -m unittest discover -s iso-builder/tests -p "test_*.py"
 PYTHONPATH=reims-gui/src python3 -m unittest discover -s reims-gui/tests -p "test_*.py"
 python3 -m unittest discover -s packaging/tests -p "test_*.py"
+PYTHONPATH=reims-gui/src:reims-web/src python3 -m unittest discover -s reims-web/tests -p "test_*.py"
 ```
 
 ---
@@ -158,6 +160,23 @@ pip install -r requirements.txt
 # Launch application (with mock mode support for systems without KVM/Vulkan)
 python3 -m reims_gui.main --mock
 ```
+
+---
+
+## 🌐 Web Console (Proxmox-style)
+
+Reims Desktop also ships a browser-based console (`reims-web`) listening on **:8006**, allowing the macOS VM fleet to be managed from any device on the LAN — dashboard with live host CPU/RAM charts, host diagnostics, GPU list, VM start/stop/delete and a creation wizard with live progress:
+
+```bash
+# Development (mock mode, no KVM/Vulkan required)
+cd reims-web && source .venv/bin/activate
+PYTHONPATH=../reims-gui/src:src python -m reims_web --mock --dev
+
+# Production-like (with admin password)
+REIMS_WEB_PASSWORD=s3cret PYTHONPATH=../reims-gui/src:src python -m reims_web
+```
+
+See [reims-web/README.md](reims-web/README.md) for the full API surface and the deployment notes (systemd unit on :8006).
 
 ---
 

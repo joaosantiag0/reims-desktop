@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reims Desktop — Web</title>
+<link rel="icon" href="reims-logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Login screen (hidden when open mode) -->
+<div id="loginScreen" class="login-screen hidden">
+  <div class="login-card">
+    <img src="reims-logo.png" alt="" class="login-logo">
+    <h1 data-i18n="app.title">Reims Desktop</h1>
+    <p class="login-sub" data-i18n="app.subtitle"></p>
+    <form id="loginForm">
+      <input type="password" id="loginPassword" data-i18n-placeholder="web.login.password"
+             autocomplete="current-password" required>
+      <button type="submit" class="btn btn-accent btn-block" data-i18n="web.login.submit">Entrar</button>
+      <div id="loginError" class="login-error hidden" data-i18n="web.login.error"></div>
+    </form>
+  </div>
+</div>
+
+<!-- Main shell -->
+<div id="app" class="app hidden">
+  <header class="topbar">
+    <div class="brand">
+      <img src="reims-logo.png" alt="" class="brand-logo">
+      <div>
+        <div class="brand-title" data-i18n="app.title">Reims Desktop</div>
+        <div class="brand-sub" data-i18n="web.brand.subtitle">Web Console</div>
+      </div>
+    </div>
+    <div class="topbar-stats">
+      <span class="stat" id="hostCpuLabel">CPU <strong id="hostCpu">–</strong></span>
+      <span class="stat" id="hostRamLabel">RAM <strong id="hostRam">–</strong></span>
+    </div>
+    <div class="topbar-actions">
+      <select id="langSelect" class="lang-select" title="Language">
+        <option value="pt_BR">Português</option>
+        <option value="en_US">English</option>
+        <option value="es_ES">Español</option>
+      </select>
+      <button id="logoutBtn" class="btn btn-ghost hidden" data-i18n="web.topbar.logout">Sair</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-node" id="hostNode">
+        <span class="node-icon">▤</span>
+        <span data-i18n="web.sidebar.host">Host</span>
+      </div>
+      <div class="sidebar-section" data-i18n="web.sidebar.vms">Máquinas Virtuais</div>
+      <ul id="vmList" class="vm-list"></ul>
+      <button id="newVmBtn" class="btn btn-accent btn-block new-vm-btn" data-i18n="header.new_vm">+ Nova VM</button>
+    </aside>
+
+    <main class="content">
+      <section id="doctorBar" class="doctor-bar"></section>
+
+      <section class="charts">
+        <div class="chart-card">
+          <h3 data-i18n="resources.cpu">CPU</h3>
+          <canvas id="cpuChart" width="440" height="120"></canvas>
+          <div class="chart-current" id="cpuNow">–</div>
+        </div>
+        <div class="chart-card">
+          <h3 data-i18n="resources.ram">RAM</h3>
+          <canvas id="ramChart" width="440" height="120"></canvas>
+          <div class="chart-current" id="ramNow">–</div>
+        </div>
+      </section>
+
+      <section class="vm-grid" id="vmGrid"></section>
+      <div id="vmEmpty" class="vm-empty hidden">
+        <h2 data-i18n="vm.empty.title"></h2>
+        <p data-i18n="vm.empty.desc"></p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Creation wizard modal -->
+<div id="wizardModal" class="modal hidden">
+  <div class="modal-card">
+    <h2 data-i18n="wizard.title"></h2>
+    <form id="wizardForm" class="wizard-form">
+      <label data-i18n="wizard.field.name"></label>
+      <input type="text" id="wzName" required pattern="[A-Za-z0-9._-]+">
+
+      <label data-i18n="wizard.step.release"></label>
+      <select id="wzRelease">
+        <option value="tahoe">macOS 26 Tahoe</option>
+        <option value="sequoia">macOS 15 Sequoia</option>
+        <option value="sonoma">macOS 14 Sonoma</option>
+        <option value="ventura">macOS 13 Ventura</option>
+      </select>
+
+      <label data-i18n="vm.specs.vcpu"></label>
+      <input type="number" id="wzCpus" min="1" max="32" value="4" required>
+
+      <label data-i18n="vm.specs.memory"></label>
+      <input type="number" id="wzMemory" min="2048" max="131072" step="1024" value="8192" required>
+
+      <label data-i18n="vm.specs.disk"></label>
+      <input type="number" id="wzDisk" min="32" max="2048" value="64" required>
+
+      <label data-i18n="vm.specs.gpu"></label>
+      <select id="wzGpu"></select>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="wzCancel" data-i18n="wizard.btn.cancel"></button>
+        <button type="submit" class="btn btn-accent" data-i18n="wizard.btn.create"></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Creation task progress modal -->
+<div id="taskModal" class="modal hidden">
+  <div class="modal-card">
+    <h2 data-i18n="wizard.creation.title"></h2>
+    <div class="progress-track"><div id="taskProgress" class="progress-fill"></div></div>
+    <div id="taskMessage" class="task-message"></div>
+    <pre id="taskLog" class="task-log"></pre>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="taskClose" data-i18n="wizard.creation.btn_close"></button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" class="toasts"></div>
+<script src="app.js"></script>
+</body>
+</html>

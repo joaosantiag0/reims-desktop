@@ -16,14 +16,16 @@ QScrollArea = QtWidgets.QScrollArea
 QVBoxLayout = QtWidgets.QVBoxLayout
 QWidget = QtWidgets.QWidget
 
+from reims_gui.core import prefs
 from reims_gui.core.ctl_client import ReimsCtlClient
-from reims_gui.core.models import DoctorHealth, GpuDevice, VmInfo
+from reims_gui.core.models import DoctorHealth, GpuDevice, VmInfo, VmStatus
 from reims_gui.core.updater import SystemUpdater
 from reims_gui.i18n.translator import Translator, t
 from reims_gui.ui.dialogs.new_vm_dialog import NewVmDialog
 from reims_gui.ui.dialogs.update_dialog import UpdateDialog
 from reims_gui.ui.dialogs.vm_creation_dialog import VmCreationDialog
 from reims_gui.ui.widgets.doctor_bar import DoctorBar
+from reims_gui.ui.widgets.resource_chart import ResourceMonitorBar
 from reims_gui.ui.widgets.vm_card import VmCard
 
 logger = logging.getLogger(__name__)
@@ -32,12 +34,14 @@ logger = logging.getLogger(__name__)
 class MainWindow(QMainWindow):
     """Main Application Window for Reims Control Center."""
 
-    def __init__(self, client: ReimsCtlClient, parent=None):
+    def __init__(self, client: ReimsCtlClient, parent=None, open_last_vm: bool = False):
         super().__init__(parent)
         self.client = client
         self.updater = SystemUpdater()
         self.translator = Translator.get_instance()
         self.cards: List[VmCard] = []
+        # CLI override: when True, start the last VM without prompting.
+        self.open_last_vm_flag = bool(open_last_vm)
 
         self.setWindowTitle(t("app.title"))
         self.resize(880, 620)
@@ -57,6 +61,9 @@ class MainWindow(QMainWindow):
 
         # Initial data load
         self.refresh_data()
+
+        # After the window appears, offer (or automatically) open the last VM
+        QTimer.singleShot(400, self._maybe_open_last_vm)
 
         # Periodic refresh timer (every 4 seconds)
         self.timer = QTimer(self)
@@ -132,6 +139,10 @@ class MainWindow(QMainWindow):
         self.doctor_bar = DoctorBar()
         content_layout.addWidget(self.doctor_bar)
 
+        # Resource Monitor (CPU/RAM live charts)
+        self.resource_bar = ResourceMonitorBar()
+        content_layout.addWidget(self.resource_bar)
+
         # Scroll Area for VMs
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -163,7 +174,13 @@ class MainWindow(QMainWindow):
         health = self.client.run_doctor()
         self.doctor_bar.update_health(health)
 
-        # 2. Update VMs
+        # 2. Update host CPU/RAM charts
+        try:
+            self.resource_bar.refresh()
+        except Exception as e:
+            logger.debug(f"resource sample failed: {e}")
+
+        # 3. Update VMs
         vms = self.client.list_vms()
         self._render_vms(vms)
 
@@ -196,6 +213,8 @@ class MainWindow(QMainWindow):
     def _handle_start_vm(self, name: str):
         success = self.client.start_vm(name)
         if success:
+            # Remember it so Reims Desktop can offer to reopen it next boot.
+            prefs.set_last_vm(name)
             self.refresh_data()
 
     def _handle_stop_vm(self, name: str):
@@ -216,6 +235,76 @@ class MainWindow(QMainWindow):
         if confirm == QMessageBox.StandardButton.Yes:
             self.client.delete_vm(name)
             self.refresh_data()
+
+    def _maybe_open_last_vm(self, vms: Optional[List[VmInfo]] = None):
+        """At startup, offer (or automatically) open the last VM the user ran.
+
+        Behavior depends on the persisted `last_vm_policy`:
+          - "always": start it right away, without asking;
+          - "ask":    show a prompt with a "remember my choice" checkbox;
+          - "never":  do nothing.
+        The `--open-last-vm` CLI flag forces the automatic behavior.
+        """
+        try:
+            last_name = prefs.get_last_vm()
+            if not last_name:
+                return
+            policy = prefs.POLICY_ALWAYS if self.open_last_vm_flag else prefs.get_last_vm_policy()
+            if policy == prefs.POLICY_NEVER:
+                return
+
+            if vms is None:
+                vms = self.client.list_vms()
+            vm = next((v for v in vms if v.name == last_name), None)
+            if vm is None:
+                logger.info(f"Last VM '{last_name}' no longer exists; skipping auto-open")
+                return
+            if vm.status == VmStatus.RUNNING:
+                logger.info(f"Last VM '{last_name}' is already running")
+                return
+
+            if policy == prefs.POLICY_ALWAYS:
+                logger.info(f"Auto-opening last VM: {last_name}")
+                self._handle_start_vm(last_name)
+                return
+
+            # policy == "ask"
+            choice = self._prompt_open_last_vm(last_name)
+            if choice == "always":
+                prefs.set_last_vm_policy(prefs.POLICY_ALWAYS)
+                self._handle_start_vm(last_name)
+            elif choice == "open":
+                self._handle_start_vm(last_name)
+            elif choice == "never":
+                prefs.set_last_vm_policy(prefs.POLICY_NEVER)
+        except Exception as e:
+            # Never block the desktop just because the auto-open check failed.
+            logger.warning(f"Failed to check last VM: {e}")
+
+    def _prompt_open_last_vm(self, name: str) -> str:
+        """Ask the user whether to open the last VM.
+
+        Returns one of: "open", "always", "never", "skip".
+        """
+        box = QMessageBox(self)
+        box.setWindowTitle(t("vm.last.title"))
+        box.setText(t("vm.last.question", name=name))
+        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        box.setDefaultButton(QMessageBox.StandardButton.Yes)
+        btn_open = box.button(QMessageBox.StandardButton.Yes)
+        if btn_open is not None and hasattr(btn_open, "setText"):
+            btn_open.setText(t("vm.last.btn_open"))
+        btn_later = box.button(QMessageBox.StandardButton.No)
+        if btn_later is not None and hasattr(btn_later, "setText"):
+            btn_later.setText(t("vm.last.btn_later"))
+        checkbox = QCheckBox(t("vm.last.remember"))
+        box.setCheckBox(checkbox)
+        result = box.exec()
+        said_yes = result == QMessageBox.StandardButton.Yes
+        remember = bool(checkbox.isChecked())
+        if said_yes:
+            return "always" if remember else "open"
+        return "never" if remember else "skip"
 
     def _handle_new_vm(self):
         gpus = self.client.list_gpus()
@@ -254,5 +343,6 @@ class MainWindow(QMainWindow):
         self.lbl_empty_title.setText(t("vm.empty.title"))
         self.lbl_empty_desc.setText(t("vm.empty.desc"))
         self.doctor_bar.retranslate()
+        self.resource_bar.retranslate()
         for card in self.cards:
             card.retranslate()

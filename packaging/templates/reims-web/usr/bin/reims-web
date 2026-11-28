@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Reims Web launcher: Proxmox-style web console for reims-ctl.
+# The reims_web and reims_gui packages ship in python3 dist-packages.
+set -euo pipefail
+exec python3 -m reims_web "$@"

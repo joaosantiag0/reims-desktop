@@ -38,6 +38,14 @@ QWidget {
     padding: 10px 16px;
 }
 
+/* Resource Monitor Bar (CPU/RAM charts) */
+#resourceBar {
+    background-color: #1A1D24;
+    border: 1px solid #2B303B;
+    border-radius: 8px;
+    padding: 10px 16px;
+}
+
 .doctor-item {
     font-size: 12px;
     font-weight: 500;

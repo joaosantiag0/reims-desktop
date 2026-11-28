@@ -1,0 +1,26 @@
+[Unit]
+Description=Reims Web Console (Proxmox-style VM manager)
+Documentation=https://github.com/joaosantiag0/reims-desktop
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/reims-web --host 0.0.0.0 --port 8006
+Environment=PYTHONUNBUFFERED=1
+# Admin password: root-only file with a single line (plain or token).
+# Alternatively set REIMS_WEB_PASSWORD here (avoid committing secrets).
+EnvironmentFile=-/etc/reims/web.env
+WorkingDirectory=/usr/share/reims
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/reims-ctl /var/log/reims
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

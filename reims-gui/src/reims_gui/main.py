@@ -33,6 +33,11 @@ def main():
         default=None,
         help="Custom path to reims-desktop-ctl binary",
     )
+    parser.add_argument(
+        "--open-last-vm",
+        action="store_true",
+        help="Automatically start the last used VM at launch, without asking",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -48,7 +53,7 @@ def main():
         Translator.get_instance().set_language(args.lang)
 
     client = ReimsCtlClient(binary_path=args.binary, mock=args.mock)
-    window = MainWindow(client=client)
+    window = MainWindow(client=client, open_last_vm=args.open_last_vm)
     window.show()
 
     sys.exit(app.exec())

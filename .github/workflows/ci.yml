@@ -43,6 +43,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           pip install -r reims-gui/requirements.txt
+          pip install -r reims-web/requirements.txt
 
       - name: Run Core & Pipeline Tests
         run: |
@@ -53,6 +54,10 @@ jobs:
           cd reims-gui
           PYTHONPATH=src python3 -m unittest discover -s tests -p "test_*.py" -v
 
+      - name: Run reims-web Unit Tests
+        run: |
+          PYTHONPATH=reims-gui/src:reims-web/src python3 -m unittest discover -s reims-web/tests -p "test_*.py" -v
+
       - name: Run Debian Packaging Tests
         run: |
           python3 -m unittest discover -s packaging/tests -p "test_*.py" -v
@@ -61,7 +66,7 @@ jobs:
         run: |
           python3 -m unittest discover -s iso-builder/tests -p "test_*.py" -v
 
-      - name: Build Debian Packages (reims-core, reims-gui, reims-vgpu)
+      - name: Build Debian Packages (reims-core, reims-gui, reims-web, reims-vgpu)
         run: |
           ./packaging/scripts/build_all.sh --mock
 

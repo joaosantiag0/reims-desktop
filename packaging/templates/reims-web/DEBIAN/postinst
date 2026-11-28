@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# reims-web postinst: prepare the admin password and enable the service.
+
+PASSWORD_DIR="/etc/reims"
+PASSWORD_FILE="${PASSWORD_DIR}/web-password"
+
+if [[ ! -f "${PASSWORD_FILE}" ]]; then
+    mkdir -p "${PASSWORD_DIR}"
+    chmod 700 "${PASSWORD_DIR}"
+    PASSWORD="$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 24)"
+    printf '%s\n' "${PASSWORD}" > "${PASSWORD_FILE}"
+    chmod 600 "${PASSWORD_FILE}"
+    echo "reims-web: generated admin password at ${PASSWORD_FILE} (root-only):"
+    echo "  ${PASSWORD}"
+fi
+
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload || true
+    systemctl enable reims-web.service || true
+    systemctl restart reims-web.service || true
+fi
+
+exit 0

@@ -1,0 +1,478 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Reims Desktop - Modo VM (reims-desktop-suspend)
+# Suspende (pausa) ou encerra os componentes do desktop LXQt enquanto uma
+# máquina virtual está em execução, liberando CPU e RAM para o guest, e
+# restaura tudo quando a VM é parada.
+#
+# Uso:
+#   reims-desktop-suspend pause [--kill]   # suspende o desktop (padrão: pausar)
+#   reims-desktop-suspend resume           # restaura o desktop
+#   reims-desktop-suspend status           # mostra o estado atual
+#   reims-desktop-suspend wrap [--kill] <cmd...>
+#                                          # roda <cmd> como app único da tela
+#                                          # (pausa antes, restaura quando sai)
+#
+# Variáveis de ambiente:
+#   REIMS_VM_MODE=pause|kill|off   modo padrão usado pelo `pause`
+#                                  (`off` é um no-op; `kill` encerra os módulos
+#                                  em vez de apenas pausá-los, liberando RAM)
+#   REIMS_VM_SERVICES=on|off       fase de serviços do sistema (padrão: on)
+#   REIMS_SUSPEND_TARGETS="..."    sobrescreve a lista de processos alvo (testes)
+#   REIMS_SYSTEM_SERVICES="..."    sobrescreve a lista de unidades systemd
+#   REIMS_USER_SERVICES="..."      sobrescreve as unidades de usuário
+#   REIMS_STATE_DIR=/caminho       diretório do arquivo de estado (testes)
+#
+# Fase de serviços: no pause, para (systemctl stop) os daemons pesados que a VM
+# não precisa (snapd, bluetooth, ModemManager, avahi, cups, udisks2, upower,
+# packagekit, timers de manutenção etc.), registrando só os que estavam ativos;
+# no resume, reinicia exatamente os que foram parados. Nunca tocamos:
+#   dbus, systemd-logind, udev, resolved, journald, NetworkManager,
+#   wpa_supplicant, ssh, sddm, polkit — sem eles a sessão/rede/acesso caem.
+# Privilégios: root direto → sudo -n (credenciais em cache) → helper `--as-root`
+# deste script liberado sem senha em /etc/sudoers.d/90-reims-vm-mode (o helper
+# valida cada unidade contra a lista interna, então o sudoers nunca autoriza
+# parar unidades críticas). Sem nenhum dos três, a fase é pulada com aviso.
+# ==============================================================================
+set -euo pipefail
+
+# Componentes LXQt seguros para pausar/encerrar. NUNCA adicionamos aqui:
+#   Xorg/X, sddm, openbox/kwin (gerenciador de janelas), sshd, qemu e a GUI
+#   reims-desktop — sem eles a janela da VM não renderiza ou perdemos acesso.
+# Lista calibrada contra o Reims Desktop real (Predator/Ubuntu 24.04):
+#   lxqt-globalkeysd, qlipper, nm-tray e lubuntu-update rodam lá por padrão.
+DEFAULT_TARGETS="lxqt-panel pcmanfm-qt lxqt-notificationd lxqt-runner lxqt-globalkeys lxqt-globalkeysd lxqt-powermanagement lxqt-policykit-agent qlipper nm-tray lubuntu-update"
+TARGETS="${REIMS_SUSPEND_TARGETS:-${DEFAULT_TARGETS}}"
+
+# Unidades systemd do sistema que podem parar durante a VM. Nunca listar aqui:
+#   dbus.service, systemd-logind.service, systemd-udevd.service,
+#   systemd-resolved.service, systemd-journald.service, NetworkManager.service,
+#   wpa_supplicant.service, ssh.service, sddm.service, polkit.service.
+# IMPORTANTE: serviço SEMPRE antes do seu .socket — vários serviços têm
+# Requires=<unidade>.socket (ex.: snapd.service Requires=snapd.socket), e parar
+# o socket primeiro derruba o serviço sem registrá-lo no state (o resume não
+# o religaria). Descoberto no Reims Desktop real.
+DEFAULT_SYSTEM_SERVICES="snapd snapd.socket bluetooth.service ModemManager.service avahi-daemon.service cups.service cups-browsed.service udisks2.service upower.service accounts-daemon.service packagekit.service power-profiles-daemon.service thermald.service networkd-dispatcher.service kerneloops.service unattended-upgrades.service fwupd.service switcheroo-control.service bolt.service rsyslog.service apt-daily.timer apt-daily-upgrade.timer motd-news.timer man-db.timer e2scrub_all.timer fstrim.timer"
+SYSTEM_SERVICES="${REIMS_SYSTEM_SERVICES:-${DEFAULT_SYSTEM_SERVICES}}"
+
+# Unidades systemd --user (áudio/portais/gvfs). A VM do Reims Desktop não usa
+# áudio do host por padrão, então parar PipeWire durante a execução é seguro.
+# Para os SOCKETS junto com os serviços: sem isso o D-Bus/socket activation
+# reinicia o pipewire sozinho (verificado no Reims Desktop real).
+# Lista calibrada com `systemctl --user list-units --state=running` no Reims
+# Desktop real (portais KDE+LXQt e os 5 monitores gvfs).
+DEFAULT_USER_SERVICES="pipewire pipewire.socket pipewire-pulse pipewire-pulse.socket wireplumber filter-chain pulseaudio obex xdg-desktop-portal xdg-desktop-portal-gtk plasma-xdg-desktop-portal-kde xdg-desktop-portal-kde xdg-document-portal xdg-permission-store plasma-kscreen gvfs-daemon gvfs-udisks2-volume-monitor gvfs-afc-volume-monitor gvfs-goa-volume-monitor gvfs-gphoto2-volume-monitor gvfs-mtp-volume-monitor"
+USER_SERVICES="${REIMS_USER_SERVICES:-${DEFAULT_USER_SERVICES}}"
+
+SYSTEMCTL_BIN="${REIMS_SYSTEMCTL_BIN:-systemctl}"
+SUDO_BIN="${REIMS_SUDO_BIN:-sudo}"
+
+STATE_DIR="${REIMS_STATE_DIR:-${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}/reims-vm-$(id -u)}}"
+STATE_FILE="${STATE_DIR}/reims-vm-desktop.state"
+
+# Exclui a própria árvore de processos do script: em modo kill o script roda
+# filhos como `sleep 1` (espera do SIGTERM); sem esse filtro, um alvo chamado
+# "sleep" casaria com o nosso próprio filho e o script se mataria.
+is_own_process() {
+    local p="$1"
+    [[ "${p}" == "$$" ]] && return 0
+    p="$(ps -o ppid= -p "${p}" 2>/dev/null | tr -d " ")"
+    while [[ -n "${p}" && "${p}" != "1" && "${p}" != "0" ]]; do
+        if [[ "${p}" == "$$" ]]; then
+            return 0
+        fi
+        p="$(ps -o ppid= -p "${p}" 2>/dev/null | tr -d " ")"
+    done
+    return 1
+}
+
+# Encontra PIDs do usuário para um nome de processo (regex ERE ancorada).
+# Usa -f porque o comm do Linux é truncado em 15 caracteres
+# (ex.: lxqt-notificationd -> lxqt-notificati).
+pids_for() {
+    local name="$1" pid out=""
+    for pid in $(pgrep -u "$(id -u)" -f "(^|/)${name}( |\$)" 2>/dev/null || true); do
+        if ! is_own_process "${pid}"; then
+            out+="${pid} "
+        fi
+    done
+    printf '%s' "${out}"
+}
+
+stop_pids() {
+    local pid
+    for pid in "$@"; do
+        kill -STOP "${pid}" 2>/dev/null || true
+    done
+}
+
+# Libera caches de página (RAM usada pelo kernel). Só funciona como root;
+# em usuário comum é um no-op silencioso.
+drop_caches() {
+    if [[ -r /proc/sys/vm/drop_caches ]] && [[ -w /proc/sys/vm/drop_caches ]]; then
+        sync 2>/dev/null || true
+        echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
+    fi
+}
+
+# Executa "ação unidade" (ação = stop|start) com privilégios: root direto;
+# senão sudo -n; senão o helper `--as-root` deste mesmo script (root-owned,
+# liberado sem senha em /etc/sudoers.d/90-reims-vm-mode — só aceita unidades
+# das listas internas); por último falha com 127 (fase pulada).
+# run_priv_probe informa se há algum caminho privilegiado disponível.
+# REIMS_PRIV_MOCK=1 (só testes) simula root.
+run_priv_probe() {
+    [[ "$(id -u)" -eq 0 ]] && return 0
+    [[ "${REIMS_PRIV_MOCK:-0}" == "1" ]] && return 0
+    "${SUDO_BIN}" -n true >/dev/null 2>&1 && return 0
+    "${SUDO_BIN}" -n "${BASH_SOURCE[0]}" --as-root check >/dev/null 2>&1 && return 0
+    return 127
+}
+
+run_priv() {
+    local action="$1" unit="$2"
+    if [[ "$(id -u)" -eq 0 ]] || [[ "${REIMS_PRIV_MOCK:-0}" == "1" ]]; then
+        "${SYSTEMCTL_BIN}" "${action}" "${unit}"
+    elif "${SUDO_BIN}" -n true >/dev/null 2>&1; then
+        "${SUDO_BIN}" -n "${SYSTEMCTL_BIN}" "${action}" "${unit}"
+    elif "${SUDO_BIN}" -n "${BASH_SOURCE[0]}" --as-root check >/dev/null 2>&1; then
+        "${SUDO_BIN}" -n "${BASH_SOURCE[0]}" --as-root "${action}" "${unit}"
+    else
+        return 127
+    fi
+}
+
+# Helper privilegiado chamado via sudoers (NOPASSWD). Aceita APENAS unidades
+# presentes na lista interna de serviços — nunca unidades críticas.
+as_root_helper() {
+    local action="${1:-}"
+    shift || true
+    case "${action}" in
+        check)
+            exit 0
+            ;;
+        stop|start)
+            ;;
+        *)
+            echo "ação inválida: ${action:-vazio}" >&2
+            exit 2
+            ;;
+    esac
+    local unit list=" ${SYSTEM_SERVICES} "
+    for unit in "$@"; do
+        if [[ "${list}" != *" ${unit} "* ]] && [[ "${list}" != *" ${unit}.service "* ]]; then
+            echo "unidade não autorizada: ${unit}" >&2
+            exit 3
+        fi
+    done
+    "${SYSTEMCTL_BIN}" "${action}" "$@"
+}
+
+system_services_enabled() {
+    [[ "${REIMS_VM_SERVICES:-on}" != "off" ]] && command -v "${SYSTEMCTL_BIN}" >/dev/null 2>&1
+}
+
+# Para as unidades systemd de sistema ativas, registrando só as que paramos.
+stop_system_services() {
+    local services_list="" unit
+    if ! system_services_enabled; then
+        return 0
+    fi
+    if ! run_priv_probe >/dev/null 2>&1; then
+        echo "==> Aviso: sem 'sudo -n' para gerenciar serviços do sistema; fase de serviços ignorada." >&2
+        return 0
+    fi
+    for unit in ${SYSTEM_SERVICES}; do
+        if "${SYSTEMCTL_BIN}" is-active --quiet "${unit}" 2>/dev/null; then
+            if run_priv stop "${unit}" >/dev/null 2>&1; then
+                services_list+="${unit} "
+            fi
+        fi
+    done
+    if [[ -n "${services_list}" ]]; then
+        echo "==> Serviços parados para a VM: ${services_list}"
+    fi
+    printf '%s' "${services_list}" > "${STATE_DIR}/reims-vm-services.tmp"
+}
+
+# Para as unidades systemd --user ativas (áudio, portais). Sem gerenciador de
+# usuário (ex.: DISPLAY via SSH), a fase é pulada silenciosamente.
+stop_user_services() {
+    local user_list="" unit
+    if ! system_services_enabled; then
+        return 0
+    fi
+    if [[ -z "${XDG_RUNTIME_DIR:-}" ]] || [[ ! -d "${XDG_RUNTIME_DIR}" ]]; then
+        return 0
+    fi
+    for unit in ${USER_SERVICES}; do
+        if "${SYSTEMCTL_BIN}" --user is-active --quiet "${unit}" 2>/dev/null; then
+            if "${SYSTEMCTL_BIN}" --user stop "${unit}" >/dev/null 2>&1; then
+                user_list+="${unit} "
+            fi
+        fi
+    done
+    if [[ -n "${user_list}" ]]; then
+        echo "==> Serviços de usuário parados para a VM: ${user_list}"
+    fi
+    printf '%s' "${user_list}" > "${STATE_DIR}/reims-vm-uservices.tmp"
+}
+
+# Importa o ambiente gráfico da sessão viva (DISPLAY, XAUTHORITY, etc.) a partir
+# de /proc/<pid>/environ. Necessário porque o resume pode rodar sem ambiente de
+# sessão (ex.: via SSH pelo reims-desktop-ctl stop) — sem isso os módulos
+# relançados morrem na hora por não acharem o display.
+import_session_env() {
+    local src pid key kv
+    if [[ -n "${DISPLAY:-}" ]] && [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
+        return 0
+    fi
+    for src in lxqt-session openbox sddm Xorg; do
+        for pid in $(pids_for "$src"); do
+            [[ -r "/proc/${pid}/environ" ]] || continue
+            while IFS= read -r -d '' kv; do
+                key="${kv%%=*}"
+                case "${key}" in
+                    DISPLAY|XAUTHORITY|XDG_RUNTIME_DIR|DBUS_SESSION_BUS_ADDRESS)
+                        if [[ -z "${!key:-}" ]]; then
+                            export "${key}=${kv#*=}"
+                        fi
+                        ;;
+                esac
+            done < "/proc/${pid}/environ"
+        done
+    done
+}
+
+# Relança um módulo LXQt encerrado em segundo plano, sem travar o chamador.
+relaunch() {
+    local name="$1"
+    case "${name}" in
+        pcmanfm-qt)
+            ( pcmanfm-qt --desktop >/dev/null 2>&1 < /dev/null & ) ;;
+        *)
+            ( "${name}" >/dev/null 2>&1 < /dev/null & ) ;;
+    esac
+    echo "    relançado: ${name} (DISPLAY=${DISPLAY:-vazio})" >&2
+}
+
+do_pause() {
+    local mode="${REIMS_VM_MODE:-pause}"
+    local arg
+    import_session_env
+    for arg in "$@"; do
+        case "${arg}" in
+            --kill) mode="kill" ;;
+        esac
+    done
+
+    if [[ "${mode}" == "off" ]]; then
+        echo "==> Modo VM desativado (REIMS_VM_MODE=off); desktop permanece ativo."
+        return 0
+    fi
+
+    mkdir -p "${STATE_DIR}"
+    if [[ -s "${STATE_FILE}" ]]; then
+        echo "==> Desktop já suspenso (estado em ${STATE_FILE}). Nada a fazer."
+        return 0
+    fi
+
+    # O gerenciador de sessão lxqt-session é apenas PAUSADO (nunca morto):
+    # pausado, ele não recria os módulos que encerramos; continuado no resume,
+    # ele mesmo restaura o que faltar. Matar encerraria a sessão inteira.
+    local session_pids="" session_stopped="" name pids
+    session_pids="$(pids_for "lxqt-session")"
+    if [[ -n "${session_pids}" ]]; then
+        stop_pids ${session_pids}
+        session_stopped="${session_pids//$'\n'/ }"
+    fi
+
+    local stopped_list="" killed_list=""
+    if [[ "${mode}" == "kill" ]]; then
+        for name in ${TARGETS}; do
+            pids="$(pids_for "${name}")"
+            if [[ -n "${pids}" ]]; then
+                kill -TERM ${pids} 2>/dev/null || true
+                killed_list+="${name} "
+            fi
+        done
+        sleep 1
+        # Encerra à força o que ignorou o SIGTERM
+        for name in ${killed_list}; do
+            pids="$(pids_for "${name}")"
+            if [[ -n "${pids}" ]]; then
+                kill -KILL ${pids} 2>/dev/null || true
+            fi
+        done
+    else
+        for name in ${TARGETS}; do
+            pids="$(pids_for "${name}")"
+            if [[ -n "${pids}" ]]; then
+                stop_pids ${pids}
+                stopped_list+="${name}:${pids//$'\n'/,} "
+            fi
+        done
+    fi
+
+    printf 'mode=%s\nsession=%s\nkilled=%s\nstopped=%s\n' \
+        "${mode}" "${session_stopped}" "${killed_list}" "${stopped_list}" > "${STATE_FILE}"
+
+    stop_system_services
+    stop_user_services
+    local services_rec="" uservices_rec=""
+    if [[ -f "${STATE_DIR}/reims-vm-services.tmp" ]]; then
+        services_rec="$(cat "${STATE_DIR}/reims-vm-services.tmp")"
+        rm -f "${STATE_DIR}/reims-vm-services.tmp"
+    fi
+    if [[ -f "${STATE_DIR}/reims-vm-uservices.tmp" ]]; then
+        uservices_rec="$(cat "${STATE_DIR}/reims-vm-uservices.tmp")"
+        rm -f "${STATE_DIR}/reims-vm-uservices.tmp"
+    fi
+    {
+        printf 'mode="%s"\nsession="%s"\nkilled="%s"\nstopped="%s"\n' \
+            "${mode}" "${session_stopped}" "${killed_list}" "${stopped_list}"
+        printf 'services="%s"\nuservices="%s"\n' "${services_rec}" "${uservices_rec}"
+    } > "${STATE_FILE}"
+
+    drop_caches
+
+    if [[ "${mode}" == "kill" ]]; then
+        echo "==> Desktop encerrado (modo kill): CPU e RAM liberadas para a VM."
+    else
+        echo "==> Desktop pausado (modo pause): CPU liberada para a VM."
+        echo "    Dica: REIMS_VM_MODE=kill libera também a RAM dos módulos."
+    fi
+}
+
+do_resume() {
+    if [[ ! -s "${STATE_FILE}" ]]; then
+        echo "==> Nenhum desktop suspenso; nada a restaurar."
+        return 0
+    fi
+
+    # shellcheck disable=SC1090
+    source "${STATE_FILE}"
+    import_session_env
+
+    # 1) Acorda o gerenciador de sessão primeiro (ele recria módulos sozinho)
+    local pid entry name pids
+    if [[ -n "${session:-}" ]]; then
+        for pid in ${session}; do
+            kill -CONT "${pid}" 2>/dev/null || true
+        done
+    fi
+
+    # 2) Modo pause: continua os módulos pausados
+    if [[ -n "${stopped:-}" ]]; then
+        for entry in ${stopped}; do
+            name="${entry%%:*}"
+            pids="${entry#*:}"
+            pids="${pids//,/ }"
+            for pid in ${pids}; do
+                kill -CONT "${pid}" 2>/dev/null || true
+            done
+        done
+    fi
+
+    # 3) Reinicia os serviços do sistema/usuário que paramos no pause
+    if [[ -n "${services:-}" ]] && system_services_enabled; then
+        if run_priv_probe >/dev/null 2>&1; then
+            for unit in ${services}; do
+                run_priv start "${unit}" >/dev/null 2>&1 || true
+            done
+            echo "==> Serviços do sistema restaurados: ${services}"
+        fi
+    fi
+    if [[ -n "${uservices:-}" ]] && system_services_enabled && [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
+        for unit in ${uservices}; do
+            "${SYSTEMCTL_BIN}" --user start "${unit}" >/dev/null 2>&1 || true
+        done
+        echo "==> Serviços de usuário restaurados: ${uservices}"
+    fi
+
+    # 4) Modo kill: espera o gerenciador de sessão reagir e relança o que faltar.
+    # O lxqt-session pode ressuscitar um módulo no CONT e ele morrer em seguida
+    # (corrida vista ao vivo), então monitoramos por até 20s: relançamos o que
+    # faltar a cada passada e só consideramos restaurado após 2 passadas limpas.
+    if [[ -n "${killed:-}" ]]; then
+        sleep 2
+        local name missing clean=0 relaunch_start=$SECONDS
+        while (( clean < 2 )) && (( SECONDS - relaunch_start < 20 )); do
+            missing=0
+            for name in ${killed}; do
+                if [[ -z "$(pids_for "${name}")" ]]; then
+                    relaunch "${name}"
+                    missing=1
+                fi
+            done
+            if (( missing == 0 )); then
+                clean=$((clean + 1))
+            else
+                clean=0
+            fi
+            sleep 2
+        done
+    fi
+
+    # 5) Se o lxqt-session morreu no processo, restaura a sessão inteira
+    if [[ -n "${session:-}" ]] && [[ -z "$(pids_for "lxqt-session")" ]]; then
+        if [[ -n "${DISPLAY:-}" ]] && command -v startlxqt >/dev/null 2>&1; then
+            ( startlxqt >/dev/null 2>&1 < /dev/null & )
+        fi
+    fi
+
+    rm -f "${STATE_FILE}"
+    echo "==> Desktop restaurado."
+}
+
+do_status() {
+    if [[ -s "${STATE_FILE}" ]]; then
+        local mode=""
+        # shellcheck disable=SC1090
+        source "${STATE_FILE}" 2>/dev/null || true
+        echo "paused (mode=${mode:-pause})"
+    else
+        echo "running"
+    fi
+}
+
+# Executa um comando como "app único da tela": pausa o desktop, roda o comando
+# em primeiro plano (ex.: a janela do QEMU em tela cheia) e, quando ele sai
+# (janela fechada, guest desligado ou kill), restaura o desktop automaticamente.
+# O código de saída do comando é preservado. `--kill` usa o modo agressivo
+# (encerra os módulos em vez de pausar — recomendado para tela cheia).
+do_wrap() {
+    local kill_flag=""
+    if [[ "${1:-}" == "--kill" ]]; then
+        kill_flag="--kill"
+        shift
+    fi
+    if (( $# == 0 )); then
+        echo "uso: reims-desktop-suspend wrap [--kill] <comando...>" >&2
+        exit 2
+    fi
+    import_session_env
+    do_pause ${kill_flag}
+    set +e
+    "$@"
+    local rc=$?
+    set -e
+    do_resume
+    exit "${rc}"
+}
+
+CMD="${1:-help}"
+shift || true
+
+case "${CMD}" in
+    --as-root) as_root_helper "$@" ;;
+    pause)  do_pause "$@" ;;
+    resume) do_resume "$@" ;;
+    status) do_status "$@" ;;
+    wrap)   do_wrap "$@" ;;
+    *)
+        echo "Uso: reims-desktop-suspend {pause [--kill]|resume|status|wrap [--kill] <comando...>}"
+        echo "Suspende/restaura o desktop LXQt enquanto uma VM roda (Modo VM do Reims Desktop)."
+        echo "  wrap: roda um comando como app único (pausa antes, restaura quando ele sai)."
+        ;;
+esac

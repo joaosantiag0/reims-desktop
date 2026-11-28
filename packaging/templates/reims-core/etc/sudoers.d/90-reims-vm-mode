@@ -1,0 +1,7 @@
+# Reims Desktop: Modo VM (reims-desktop-suspend)
+# Permite ao helper privilegiado parar/reiniciar APENAS os serviços pesados
+# da lista interna (snapd, bluetooth, cups, avahi, etc.) sem senha, enquanto
+# uma VM está em execução. O helper valida cada unidade contra a lista
+# interna e recusa unidades críticas (dbus, logind, NetworkManager, ssh...).
+# Gerenciado pelo pacote reims-core — não edite manualmente.
+%sudo ALL=(root) NOPASSWD: /usr/bin/reims-desktop-suspend --as-root *

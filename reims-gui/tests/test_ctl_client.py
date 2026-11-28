@@ -1,6 +1,12 @@
 """Unit tests for ReimsCtlClient and core models."""
 
+import os
+import subprocess
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
+
 from reims_gui.core import ctl_client
 from reims_gui.core.ctl_client import ReimsCtlClient
 from reims_gui.core.models import (
@@ -215,6 +221,116 @@ class TestUpstreamBackend(unittest.TestCase):
     def test_client_backend_attribute(self):
         client = ReimsCtlClient(mock=True)
         self.assertEqual(client.backend, "mock")
+
+
+class TestVMDesktopSuspendIntegration(unittest.TestCase):
+    """VM-mode helpers: suspend/resume the LXQt desktop around VM lifecycle."""
+
+    def setUp(self):
+        # Fake reims-desktop-suspend that records invocations.
+        self.tmp = tempfile.TemporaryDirectory()
+        fake = Path(self.tmp.name) / "fake-suspend"
+        fake.write_text(
+            "#!/usr/bin/env bash\n"
+            "echo \"$@\" >> \"${REIMS_FAKE_LOG}\"\n"
+        )
+        fake.chmod(0o755)
+        self.fake_bin = str(fake)
+        self.log_file = Path(self.tmp.name) / "calls.log"
+        os.environ["REIMS_SUSPEND_BIN"] = self.fake_bin
+        os.environ["REIMS_FAKE_LOG"] = str(self.log_file)
+
+    def tearDown(self):
+        os.environ.pop("REIMS_SUSPEND_BIN", None)
+        os.environ.pop("REIMS_FAKE_LOG", None)
+        self.tmp.cleanup()
+
+    def _calls(self):
+        text = self.log_file.read_text() if self.log_file.exists() else ""
+        return [line.strip() for line in text.splitlines() if line.strip()]
+
+    def test_find_suspend_binary_prefers_env(self):
+        self.assertEqual(ctl_client.find_suspend_binary(), self.fake_bin)
+
+    def test_find_suspend_binary_absent(self):
+        os.environ["REIMS_SUSPEND_BIN"] = "/nonexistent/reims-desktop-suspend"
+        with mock.patch.object(
+            ctl_client, "_SUSPEND_BINARY_CANDIDATES", ("/definitely/not/installed",)
+        ):
+            self.assertIsNone(ctl_client.find_suspend_binary())
+
+    def test_suspend_and_resume_call_helper(self):
+        ctl_client.suspend_desktop_for_vm()
+        ctl_client.resume_desktop_after_vm()
+        calls = self._calls()
+        self.assertEqual(calls, ["pause", "resume"])
+
+    def test_helpers_survive_missing_binary(self):
+        os.environ["REIMS_SUSPEND_BIN"] = "/nonexistent/reims-desktop-suspend"
+        with mock.patch.object(
+            ctl_client, "_SUSPEND_BINARY_CANDIDATES", ("/definitely/not/installed",)
+        ):
+            # Must not raise when the helper binary is not installed.
+            ctl_client.suspend_desktop_for_vm()
+            ctl_client.resume_desktop_after_vm()
+
+    def _make_client(self) -> ReimsCtlClient:
+        # An existing file is required (mock falls back otherwise); backend
+        # detection fails on it and lands on the "desktop" path.
+        fake_ctl = Path(self.tmp.name) / "fake-ctl"
+        fake_ctl.write_text("#!/bin/sh\nexit 0\n")
+        fake_ctl.chmod(0o755)
+        self.fake_ctl = str(fake_ctl)
+        return ReimsCtlClient(mock=False, binary_path=str(fake_ctl))
+
+    @staticmethod
+    def _subcommands(invoked):
+        """Extract the suspend/ctl subcommands (last argv element) per call,
+        skipping backend-detection --help calls."""
+        return [call[-1] for call in invoked if call[-1] != "--help"]
+
+    def test_start_vm_real_backend_suspends_desktop(self):
+        with mock.patch.object(ctl_client.subprocess, "run") as run_mock:
+            run_mock.return_value = mock.Mock(returncode=0, stdout="", stderr="")
+            self.assertTrue(self._make_client().start_vm("Some-VM"))
+            invoked = [c.args[0] for c in run_mock.call_args_list if c.args]
+            self.assertIn("pause", self._subcommands(invoked))
+
+    def test_stop_vm_real_backend_resumes_desktop(self):
+        with mock.patch.object(ctl_client.subprocess, "run") as run_mock:
+            run_mock.return_value = mock.Mock(returncode=0, stdout="", stderr="")
+            self.assertTrue(self._make_client().stop_vm("Some-VM"))
+            invoked = [c.args[0] for c in run_mock.call_args_list if c.args]
+            self.assertIn("resume", self._subcommands(invoked))
+
+    def test_start_vm_failure_resumes_desktop(self):
+        with mock.patch.object(ctl_client.subprocess, "run") as run_mock:
+            # pause succeeds; the ctl start call fails
+            run_mock.side_effect = [
+                mock.Mock(returncode=0, stdout="", stderr=""),
+                subprocess.CalledProcessError(1, ["start"]),
+            ]
+            client = self._make_client()
+            self.assertFalse(client.start_vm("Some-VM"))
+            invoked = [c.args[0] for c in run_mock.call_args_list if c.args]
+            subcommands = self._subcommands(invoked)
+            self.assertEqual(subcommands[0], "pause")
+            self.assertEqual(subcommands[-1], "resume")
+
+    def test_start_vm_upstream_wraps_with_suspend(self):
+        """Solo mode: upstream start is wrapped so the desktop returns when the
+        QEMU window closes (ctl stays attached to qemu)."""
+        with mock.patch.object(ctl_client, "detect_ctl_backend", return_value="upstream"), \
+             mock.patch.object(ctl_client.subprocess, "Popen") as popen_mock:
+            popen_mock.return_value = mock.Mock(wait=mock.Mock(return_value=0))
+            client = self._make_client()
+            self.assertTrue(client.start_vm("Some-VM"))
+        cmd = popen_mock.call_args.args[0]
+        self.assertEqual(cmd[1], "wrap")
+        self.assertEqual(cmd[2], client.binary_path)
+        self.assertEqual(cmd[-2:], ["start", "Some-VM"])
+        kwargs = popen_mock.call_args.kwargs
+        self.assertTrue(kwargs.get("start_new_session"))
 
 
 if __name__ == "__main__":

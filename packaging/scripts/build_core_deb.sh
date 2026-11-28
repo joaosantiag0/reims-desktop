@@ -40,6 +40,9 @@ fi
 if [[ -d "${STAGE_DIR}/usr/share/keyrings" ]]; then
     chmod -R 644 "${STAGE_DIR}/usr/share/keyrings/"*
 fi
+if [[ -f "${STAGE_DIR}/etc/sudoers.d/90-reims-vm-mode" ]]; then
+    chmod 440 "${STAGE_DIR}/etc/sudoers.d/90-reims-vm-mode"
+fi
 
 # Aplica a versão no control e gera o pacote
 sed -i.bak "s/^Version: .*/Version: ${REIMS_VERSION}/" "${STAGE_DIR}/DEBIAN/control"

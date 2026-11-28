@@ -37,4 +37,15 @@ if command -v ufw >/dev/null 2>&1; then
     ufw allow 22/tcp comment 'Reims Desktop SSH' >/dev/null 2>&1 || true
 fi
 
+# Valida e corrige permissões do sudoers do Modo VM (0440 obrigatório)
+if [ -f /etc/sudoers.d/90-reims-vm-mode ]; then
+    chmod 440 /etc/sudoers.d/90-reims-vm-mode
+    if command -v visudo >/dev/null 2>&1; then
+        visudo -cf /etc/sudoers.d/90-reims-vm-mode >/dev/null || rm -f /etc/sudoers.d/90-reims-vm-mode
+    fi
+fi
+if [ -x /usr/bin/reims-desktop-suspend ]; then
+    chmod 755 /usr/bin/reims-desktop-suspend
+fi
+
 exit 0

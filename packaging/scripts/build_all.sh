@@ -10,6 +10,7 @@ echo "=================================================="
 
 "${SCRIPT_DIR}/build_core_deb.sh"
 "${SCRIPT_DIR}/build_gui_deb.sh"
+"${SCRIPT_DIR}/build_web_deb.sh"
 "${SCRIPT_DIR}/build_reims_binaries.sh" "${ARGS[@]:-}"
 
 echo ""
