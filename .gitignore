@@ -25,6 +25,10 @@ wheels/
 .venv/
 venv/
 ENV/
+# Exceção: systemd units dos templates de packaging (a regra lib/ acima
+# engoliria packaging/templates/reims-web/lib/systemd)
+!packaging/**/lib/
+!packaging/**/lib/**
 
 # IDE & OS
 .DS_Store
