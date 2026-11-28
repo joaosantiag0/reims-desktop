@@ -37,6 +37,7 @@ from reims_gui.core.system_stats import SystemStatsSampler
 from reims_gui.i18n.translator import Translator
 
 from reims_web import console as vm_console
+from reims_web import host_info
 from reims_web.auth import AuthManager, read_password_from_sources
 
 logger = logging.getLogger(__name__)
@@ -317,6 +318,15 @@ def create_app(
     @app.get("/api/gpus", dependencies=[Depends(require_auth)])
     def gpus() -> List[Dict[str, Any]]:
         return [serialize_gpu(gpu) for gpu in ctl.list_gpus()]
+
+    @app.get("/api/host", dependencies=[Depends(require_auth)])
+    def host() -> Dict[str, Any]:
+        vms = ctl.list_vms()
+        return host_info.get_host_overview(vms, mock=mock)
+
+    @app.get("/api/vms/{name}/logs", dependencies=[Depends(require_auth)])
+    def vm_logs(name: str, tail: int = 120) -> Dict[str, Any]:
+        return {"name": name, "lines": host_info.read_vm_logs(name, tail_lines=tail, mock=mock)}
 
     @app.get("/api/stats", dependencies=[Depends(require_auth)])
     def stats() -> Dict[str, Any]:
