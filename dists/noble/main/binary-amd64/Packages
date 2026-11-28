@@ -1,5 +1,5 @@
 Package: reims-core
-Version: 0.1.0+build.20261128121615
+Version: 0.1.0+build.20261128130229
 Section: admin
 Priority: optional
 Architecture: all
@@ -8,13 +8,13 @@ Depends: qemu-system-x86, ovmf, swtpm, libvulkan1, mesa-vulkan-drivers, udev, op
 Description: Core configuration and kernel rules for Reims Desktop (reims-vgpu)
  Configures kernel modules (/dev/udmabuf, kvm) and udev access rules
  required for accelerated macOS guest virtualization on Linux hosts.
-Filename: pool/main/reims-core_0.1.0+build.20261128121615_all.deb
-Size: 7498210
-SHA256: d49096647d5cd5bf21071d40ec75322ff8efa5aa6595e2b0af7a9a92bf93dce5
-MD5sum: 0a71ebfeeb885124b22e091bc3aa5985
+Filename: pool/main/reims-core_0.1.0+build.20261128130229_all.deb
+Size: 7498452
+SHA256: 6a7196edd81b140e5e62ac2ad51b59e73181f679557164644afe1a568065a9ae
+MD5sum: 9817d987912bed84625453ffaeefdfc7
 
 Package: reims-gui
-Version: 0.1.0+build.20261128121615
+Version: 0.1.0+build.20261128130229
 Section: utils
 Priority: optional
 Architecture: all
@@ -23,25 +23,25 @@ Depends: python3 (>= 3.10), python3-pyqt6 | python3-pyside6 | python3-pyqt5, rei
 Description: Graphical Interface for Reims Desktop and reims-desktop-ctl
  Modern Qt6 graphical user interface for managing macOS virtual machines
  with hardware-accelerated graphics using reims-vgpu and Vulkan.
-Filename: pool/main/reims-gui_0.1.0+build.20261128121615_all.deb
-Size: 3788298
-SHA256: ecfe18de54bcb46c8de67330de07efbc5d1ca66e1fdc14ad717ed226f113166e
-MD5sum: b83117a8480b60afeb214d9e1845157b
+Filename: pool/main/reims-gui_0.1.0+build.20261128130229_all.deb
+Size: 3788604
+SHA256: ead57c757cd89be62313e79dc793395f7ef68b8377da21ac3b543965474fcbf3
+MD5sum: 8bab4009ea611fa54e04e0a42dc8fce4
 
 Package: reims-web
-Version: 0.1.0+build.20261128121615
+Version: 0.1.0+build.20261128130229
 Section: utils
 Priority: optional
 Architecture: all
 Maintainer: Reims Desktop Team <dev@reims-desktop.org>
-Depends: python3 (>= 3.10), python3-fastapi, python3-uvicorn, reims-core (>= 0.1.0), reims-gui (>= 0.1.0)
+Depends: python3 (>= 3.10), python3-fastapi, python3-uvicorn, scrot, xdotool, x11-utils, reims-core (>= 0.1.0), reims-gui (>= 0.1.0)
 Description: Proxmox-style Web Console for Reims Desktop
  Browser-based VM manager (FastAPI + vanilla JS SPA) listening on :8006,
  reusing the Qt-free core layer of reims-gui to control reims-ctl:
  live host charts, diagnostics, GPU list, VM lifecycle and creation wizard.
  Reims Desktop is an independent community project with no affiliation with
  Apple Inc. or the upstream Reims (steelbrain/reims-vgpu) project.
-Filename: pool/main/reims-web_0.1.0+build.20261128121615_all.deb
-Size: 1012588
-SHA256: 6b2853011e9120a6b375939264ef3db32dce86ff2f7eacf2687ca3c9454f9d7b
-MD5sum: 7924100b61b750a578f4823628cfd5d4
+Filename: pool/main/reims-web_0.1.0+build.20261128130229_all.deb
+Size: 1016280
+SHA256: a13f247d23d817ea12610e2b81858e51046262b115d19d68046c17f530e6d46b
+MD5sum: 89922d2524265065d53ca2ff2dd9d568
