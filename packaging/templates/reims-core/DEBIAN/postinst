@@ -41,6 +41,20 @@ if [ -f /etc/systemd/user/reims-ctl-env.service ] && command -v systemctl >/dev/
     systemctl daemon-reload >/dev/null 2>&1 || true
     systemctl --global enable reims-ctl-env.service >/dev/null 2>&1 || true
 fi
+
+# QEMU empacotado em /usr/lib/reims/ procura firmwares/ROMs em ../share/qemu
+# (/usr/lib/share/qemu). Expõe os arquivos de /usr/share/qemu e /usr/lib/ipxe/qemu
+# para que kvmvapic.bin, efi-virtio.rom e keymaps sejam encontrados.
+if [ -d /usr/share/qemu ] || [ -d /usr/lib/ipxe/qemu ]; then
+    mkdir -p /usr/lib/share/qemu
+    for f in /usr/share/qemu/* /usr/lib/ipxe/qemu/*; do
+        [ -e "$f" ] || continue
+        ln -sfn "$f" "/usr/lib/share/qemu/$(basename "$f")"
+    done
+    if [ -d /usr/share/qemu/firmware ]; then
+        ln -sfn /usr/share/qemu/firmware /usr/lib/share/qemu-firmware
+    fi
+fi
 if command -v systemctl >/dev/null 2>&1; then
     systemctl enable ssh.socket >/dev/null 2>&1 || true
     systemctl enable ssh >/dev/null 2>&1 || true
