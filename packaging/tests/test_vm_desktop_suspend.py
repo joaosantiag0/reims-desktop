@@ -347,7 +347,7 @@ class TestVMServicePhase(unittest.TestCase):
 
     def test_service_units_come_before_their_sockets(self):
         """Stopping X.socket first takes down X.service (Requires=) without
-        recording it — verified live on snapd/pipewire. X must precede X.socket."""
+        recording it — verified live on snapd. X must precede X.socket."""
         script = SUSPEND_SCRIPT.read_text()
         for list_name in ("DEFAULT_SYSTEM_SERVICES=", "DEFAULT_USER_SERVICES="):
             line = next(
@@ -362,6 +362,15 @@ class TestVMServicePhase(unittest.TestCase):
                             names.index(bare), names.index(name),
                             f"{bare} must be listed before {name} ({list_name})",
                         )
+
+    def test_pipewire_is_not_stopped_by_default(self):
+        """QEMU uses -audiodev pipewire,id=snd0; stopping PipeWire crashes VM boot."""
+        script = SUSPEND_SCRIPT.read_text()
+        line = next(
+            l for l in script.splitlines() if l.startswith("DEFAULT_USER_SERVICES=")
+        )
+        for audio_unit in ("pipewire", "pipewire-pulse", "wireplumber", "pulseaudio"):
+            self.assertNotIn(audio_unit, line)
 
     def test_user_services_phase_skipped_without_runtime_dir(self):
         res = self.run_pause({"FAKE_ACTIVE_UNITS": "snapd"})

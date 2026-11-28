@@ -55,13 +55,13 @@ TARGETS="${REIMS_SUSPEND_TARGETS:-${DEFAULT_TARGETS}}"
 DEFAULT_SYSTEM_SERVICES="snapd snapd.socket bluetooth.service ModemManager.service avahi-daemon.service cups.service cups-browsed.service udisks2.service upower.service accounts-daemon.service packagekit.service power-profiles-daemon.service thermald.service networkd-dispatcher.service kerneloops.service unattended-upgrades.service fwupd.service switcheroo-control.service bolt.service rsyslog.service apt-daily.timer apt-daily-upgrade.timer motd-news.timer man-db.timer e2scrub_all.timer fstrim.timer"
 SYSTEM_SERVICES="${REIMS_SYSTEM_SERVICES:-${DEFAULT_SYSTEM_SERVICES}}"
 
-# Unidades systemd --user (áudio/portais/gvfs). A VM do Reims Desktop não usa
-# áudio do host por padrão, então parar PipeWire durante a execução é seguro.
-# Para os SOCKETS junto com os serviços: sem isso o D-Bus/socket activation
-# reinicia o pipewire sozinho (verificado no Reims Desktop real).
+# Unidades systemd --user (portais/gvfs). NÃO parar PipeWire/WirePlumber/Pulse:
+# o QEMU do upstream reims-ctl usa `-audiodev pipewire,id=snd0` e falha ao
+# iniciar com "Failed to connect to PipeWire instance: Host is down" se o
+# PipeWire estiver parado.
 # Lista calibrada com `systemctl --user list-units --state=running` no Reims
 # Desktop real (portais KDE+LXQt e os 5 monitores gvfs).
-DEFAULT_USER_SERVICES="pipewire pipewire.socket pipewire-pulse pipewire-pulse.socket wireplumber filter-chain pulseaudio obex xdg-desktop-portal xdg-desktop-portal-gtk plasma-xdg-desktop-portal-kde xdg-desktop-portal-kde xdg-document-portal xdg-permission-store plasma-kscreen gvfs-daemon gvfs-udisks2-volume-monitor gvfs-afc-volume-monitor gvfs-goa-volume-monitor gvfs-gphoto2-volume-monitor gvfs-mtp-volume-monitor"
+DEFAULT_USER_SERVICES="obex xdg-desktop-portal xdg-desktop-portal-gtk plasma-xdg-desktop-portal-kde xdg-desktop-portal-kde xdg-document-portal xdg-permission-store plasma-kscreen gvfs-daemon gvfs-udisks2-volume-monitor gvfs-afc-volume-monitor gvfs-goa-volume-monitor gvfs-gphoto2-volume-monitor gvfs-mtp-volume-monitor"
 USER_SERVICES="${REIMS_USER_SERVICES:-${DEFAULT_USER_SERVICES}}"
 
 SYSTEMCTL_BIN="${REIMS_SYSTEMCTL_BIN:-systemctl}"

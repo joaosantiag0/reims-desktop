@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from reims_gui.qt_compat import QtGui, Qt, QTimer, QtWidgets
+QCheckBox = QtWidgets.QCheckBox
 QComboBox = QtWidgets.QComboBox
 QFrame = QtWidgets.QFrame
 QGridLayout = QtWidgets.QGridLayout
