@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# reims-ctl-env-setup: garante que o reims-ctl upstream encontre os binários
+# QEMU empacotados em /usr/lib/reims/.
+#
+# O upstream (steelbrain/reims-vgpu) resolve QEMU e qemu-img em
+# ~/.local/share/reims-ctl/qemu/current/bin/. O deb instala em /usr/lib/reims
+# (caminho de sistema), então este setup cria os symlinks por usuário na
+# primeira sessão de cada um — sem tocar em nada se já estiver correto.
+# ==============================================================================
+set -euo pipefail
+
+QEMU_DIR="/usr/lib/reims"
+LINK_DIR="${HOME}/.local/share/reims-ctl/qemu/current/bin"
+
+[[ -d "${QEMU_DIR}" ]] || exit 0
+
+mkdir -p "${LINK_DIR}"
+for BIN in "${QEMU_DIR}"/qemu-*; do
+    [[ -e "${BIN}" ]] || continue
+    BASE="$(basename "${BIN}")"
+    if [[ ! -e "${LINK_DIR}/${BASE}" ]] || [[ -L "${LINK_DIR}/${BASE}" ]]; then
+        ln -sfn "${BIN}" "${LINK_DIR}/${BASE}"
+    fi
+done

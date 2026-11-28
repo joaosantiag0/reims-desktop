@@ -34,6 +34,13 @@ if [ -f /etc/systemd/system/reims-firstboot.service ] && command -v systemctl >/
     systemctl daemon-reload >/dev/null 2>&1 || true
     systemctl enable reims-firstboot.service >/dev/null 2>&1 || true
 fi
+
+# Unit de usuário: garante os symlinks de QEMU pro reims-ctl upstream em toda
+# nova sessão (o upstream resolve os binários em ~/.local/share/reims-ctl)
+if [ -f /etc/systemd/user/reims-ctl-env.service ] && command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload >/dev/null 2>&1 || true
+    systemctl --global enable reims-ctl-env.service >/dev/null 2>&1 || true
+fi
 if command -v systemctl >/dev/null 2>&1; then
     systemctl enable ssh.socket >/dev/null 2>&1 || true
     systemctl enable ssh >/dev/null 2>&1 || true

@@ -1,0 +1,13 @@
+[Unit]
+Description=Reims Desktop: link QEMU de /usr/lib/reims para o reims-ctl upstream
+Documentation=man:reims-ctl-env-setup(8)
+DefaultDependencies=no
+Before=default.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/reims-ctl-env-setup
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
