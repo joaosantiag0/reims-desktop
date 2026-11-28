@@ -27,6 +27,13 @@ fi
 if command -v ssh-keygen >/dev/null 2>&1; then
     ssh-keygen -A >/dev/null 2>&1 || true
 fi
+
+# Ativa o gatilho systemd do firstboot (fallback robusto do autostart+pkexec
+# da sessão, que pode falhar silenciosamente dependendo do ambiente gráfico)
+if [ -f /etc/systemd/system/reims-firstboot.service ] && command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload >/dev/null 2>&1 || true
+    systemctl enable reims-firstboot.service >/dev/null 2>&1 || true
+fi
 if command -v systemctl >/dev/null 2>&1; then
     systemctl enable ssh.socket >/dev/null 2>&1 || true
     systemctl enable ssh >/dev/null 2>&1 || true

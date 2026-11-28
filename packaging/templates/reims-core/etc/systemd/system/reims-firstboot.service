@@ -1,0 +1,17 @@
+[Unit]
+Description=Reims Desktop first-boot setup (installs upstream vgpu stack)
+Documentation=file:/usr/bin/reims-firstboot-setup
+After=graphical.target
+Wants=graphical.target
+ConditionPathExists=!/var/lib/reims/firstboot-done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/reims-firstboot-setup
+TimeoutStartSec=900
+# O script é idempotente e guarda a flag /var/lib/reims/firstboot-done;
+# se falhar, o systemd não bloqueia o boot (fallo é apenas logado).
+RemainAfterExit=yes
+
+[Install]
+WantedBy=graphical.target
