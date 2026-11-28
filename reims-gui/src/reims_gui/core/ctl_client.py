@@ -575,11 +575,13 @@ class ReimsCtlClient:
                 bufsize=1,
             )
             pct = 10
+            _last_output = ""
             if proc.stdout:
                 for line in iter(proc.stdout.readline, ""):
                     line_str = line.strip()
                     if not line_str:
                         continue
+                    _last_output = line_str
                     step_msg = None
                     m = re.search(r"(\d{1,3})%", line_str)
                     if self.backend == "upstream":
@@ -615,7 +617,15 @@ class ReimsCtlClient:
                         progress_callback(pct, step_msg, line_str)
 
             proc.wait(timeout=600)
-            return proc.returncode == 0
+            if proc.returncode == 0:
+                return True
+            # Erros comuns do upstream merecem mensagem amigável.
+            if "is not empty" in _last_output:
+                err = t("wizard.creation.err_dir_not_empty", name=req.name)
+                if progress_callback:
+                    progress_callback(0, err, _last_output.strip())
+                return False
+            return False
         except Exception as e:
             logger.error(f"Failed to create VM {req.name}: {e}")
             if progress_callback:

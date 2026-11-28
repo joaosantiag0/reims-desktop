@@ -57,6 +57,7 @@
   "wizard.creation.step_config": "Configurando perfil de hardware y cargador de arranque EFI...",
   "wizard.creation.step_done": "¡Máquina virtual creada con éxito!",
   "wizard.creation.step_error": "Error al crear máquina virtual: {err}",
+  "wizard.creation.err_dir_not_empty": "Ya existe una VM antigada con el nombre '{name}'. Borra ~/.local/share/reims-ctl/vms/{name} o elige otro nombre.",
   "wizard.creation.btn_done": "Finalizar",
   "wizard.creation.btn_close": "Cerrar",
   "wizard.creation.btn_cancel": "Cancelar",
